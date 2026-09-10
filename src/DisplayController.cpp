@@ -7,7 +7,6 @@
  * Copyright (c) 2026 Your Company
  */
 
-
 #include "DisplayController.h"
 
 DisplayController::DisplayController(md_parola_initializer_list initializer_list, String defaultText)
@@ -19,12 +18,11 @@ DisplayController::DisplayController(md_parola_initializer_list initializer_list
         initializer_list.numDevices
     },
     m_renderFunctions{&DisplayController::_renderDefault, &DisplayController::_renderTmp, &DisplayController::_renderStatic},
-    m_state{RenderState::Default},
     m_textBuffers{defaultText, defaultText, defaultText},
     m_bufferPtrs {
-        &m_textBuffers[WRITABLE_BUFFER],
-        &m_textBuffers[MAIN_BUFFER],
-        &m_textBuffers[TEMPORARY_BUFFER],
+        &m_textBuffers[BufferIndex::WRITABLE],
+        &m_textBuffers[BufferIndex::MAIN],
+        &m_textBuffers[BufferIndex::TEMPORARY],
     },
     m_displayOccurrenceCountdown{0}
 {
@@ -34,7 +32,7 @@ DisplayController::DisplayController(md_parola_initializer_list initializer_list
 void
 DisplayController::begin(void)
 {
-    m_renderer.begin(); // initialization needed to do in setup();
+    m_renderer.begin();
     m_renderer.setIntensity(0);
     m_renderer.displayClear();
 
@@ -50,23 +48,24 @@ DisplayController::updateDisplay(void)
 void
 DisplayController::setMainText(const String &text)
 {
-    *m_bufferPtrs[WRITABLE_BUFFER] = text;
-    _swapWritableBuffer(MAIN_BUFFER);    
+    *m_bufferPtrs[BufferIndex::WRITABLE] = text;
+    _swapWritableBuffer(BufferIndex::MAIN);
 }
 
 void
 DisplayController::setDisplayToMainText(void)
 {
     m_renderer.displayClear();
-    m_renderer.displayScroll(m_bufferPtrs[MAIN_BUFFER]->c_str(), PA_CENTER, PA_SCROLL_LEFT, 100);
+    m_renderer.displayScroll(m_bufferPtrs[BufferIndex::MAIN]->c_str(), PA_CENTER, PA_SCROLL_LEFT, 30);
     m_state = RenderState::Default;
+    updateDisplay();
 }
 
 void
 DisplayController::setTemporaryText(const String& text)
 { 
-    *m_bufferPtrs[WRITABLE_BUFFER] = text;
-    _swapWritableBuffer(TEMPORARY_BUFFER);
+    *m_bufferPtrs[BufferIndex::WRITABLE] = text;
+    _swapWritableBuffer(BufferIndex::TEMPORARY);
 }
 
 void
@@ -75,16 +74,18 @@ DisplayController::setDisplayToTmpText(const u_int16_t occurrenceCount)
     m_displayOccurrenceCountdown = occurrenceCount;
 
     m_renderer.displayClear();
-    m_renderer.displayScroll(m_bufferPtrs[TEMPORARY_BUFFER]->c_str(), PA_CENTER, PA_SCROLL_LEFT, 100);
+    m_renderer.displayScroll(m_bufferPtrs[BufferIndex::TEMPORARY]->c_str(), PA_CENTER, PA_SCROLL_LEFT, 70);
     m_state = RenderState::TemporaryMessage;
+    updateDisplay();
 }
 
 void
 DisplayController::setDisplayToStatic(void)
 {
     m_renderer.displayClear();
-    m_renderer.displayText(m_bufferPtrs[TEMPORARY_BUFFER]->c_str(), PA_LEFT, 70, 1000, PA_NO_EFFECT);
+    m_renderer.displayText(m_bufferPtrs[BufferIndex::TEMPORARY]->c_str(), PA_LEFT, 70, 1000, PA_NO_EFFECT);
     m_state = RenderState::StaticMessage;
+    updateDisplay();
 }
 
 // private:
@@ -107,7 +108,6 @@ DisplayController::_renderTmp(void)
             return setDisplayToMainText();
         }
         --m_displayOccurrenceCountdown;
-        m_renderer.displayReset();
     }
 }
 
@@ -122,6 +122,6 @@ DisplayController::_swapWritableBuffer(const int bufferToSwap)
 {
     String* tmp = m_bufferPtrs[bufferToSwap];
 
-    m_bufferPtrs[bufferToSwap] = m_bufferPtrs[WRITABLE_BUFFER];
-    m_bufferPtrs[WRITABLE_BUFFER] = tmp;
+    m_bufferPtrs[bufferToSwap] = m_bufferPtrs[BufferIndex::WRITABLE];
+    m_bufferPtrs[BufferIndex::WRITABLE] = tmp;
 }

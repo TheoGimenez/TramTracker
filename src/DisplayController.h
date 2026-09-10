@@ -15,10 +15,6 @@
 #include <MD_MAX72xx.h>
 #include <SPI.h>
 
-#define WRITABLE_BUFFER 0
-#define MAIN_BUFFER 1
-#define TEMPORARY_BUFFER 2
-
 struct md_parola_initializer_list
 {
     MD_MAX72XX::moduleType_t mod;
@@ -30,23 +26,30 @@ struct md_parola_initializer_list
 
 class DisplayController
 {
+    enum BufferIndex
+    {
+        WRITABLE = 0,
+        MAIN     = 1,
+        TEMPORARY= 2,
+        index_count //* not a usable buffer, only used to get number of buffer defined. Should always be the lastest item.
+    };
     enum RenderState
     {
-        Default,
-        TemporaryMessage,
-        StaticMessage,
-        render_strategy_count //* not a usable state, only used to get number of state defined. Should always be the lastest item.
+        Default = 0,
+        TemporaryMessage = 1,
+        StaticMessage = 2
     };
     using RenderHandler = void (DisplayController::*)(void);
+
 private:
     MD_Parola     m_renderer;
-    RenderHandler m_renderFunctions[RenderState::render_strategy_count];
-    RenderState   m_state;
+    RenderHandler m_renderFunctions[BufferIndex::index_count];
 
-    //* set texts in triple buffering to avoid segment fault at read when a text is updated.
+    //* set texts with a multiple buffering to avoid segment fault at read when a text is updated.
     String        m_textBuffers[3];
     String*       m_bufferPtrs[3];
     //
+    u_int8_t      m_state;
     u_int16_t     m_displayOccurrenceCountdown;
 public:
     DisplayController(md_parola_initializer_list initializer_list, String defaultText);
