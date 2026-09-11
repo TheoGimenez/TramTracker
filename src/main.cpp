@@ -28,16 +28,7 @@ constexpr uint8_t k_cs_pin     =  5; // ESP chip select pinm (connect to CS/LOAD
 constexpr uint8_t k_esp_led    =  2; // esp integrated blue led
 constexpr uint8_t k_boot_button=  0; // esp boot button
 
-// LED Matrix Controller
-DisplayController g_displayController{
-    {k_hardware_type,
-     k_data_pin,
-     k_clk_pin,
-     k_cs_pin,
-     k_max_device},
-    String{"No Data"}
-};
-// bool shouldReboot = false; // flag to use from web update to reboot the ESP
+
 // WiFi Access Point Settings
 struct {
     const char *ssid;
@@ -47,7 +38,10 @@ struct {
     WIFI_PASSWORD
 };
 //
-WebServer server(WEBSERVER_PORT);
+struct {
+    DisplayController display; // LED Matrix Controller
+    WebServer webserver; // Webserver to control the display
+} components = {{}, {}};
 
 // void onTramLineSelected(const uint32_t selectedLine)
 // {
@@ -62,7 +56,7 @@ void setup()
     pinMode(k_boot_button, INPUT_PULLDOWN);
     //
     //* Setup display
-    g_displayController.begin();
+    components.display.begin();
     //
     //* Setup wifi
     WiFi.mode(WIFI_STA);
@@ -74,12 +68,12 @@ void setup()
         digitalWrite(2, LOW);
         delay(100);
     }
-    g_displayController.setTemporaryText(WiFi.localIP().toString());
+    components.display.setTemporaryText(WiFi.localIP().toString());
     //
     //* Setup webserver
-    server.begin([](String selectedLine) {
-        g_displayController.setMainText(selectedLine);
-        g_displayController.setDisplayToMainText();
+    components.webserver.begin([](String selectedLine) {
+        components.display.setMainText(selectedLine);
+        components.display.setDisplayToMainText();
     });
     //
     // setup socket
@@ -87,11 +81,11 @@ void setup()
 
 void loop()
 {
-    g_displayController.updateDisplay();
+    components.display.updateDisplay();
 
     if (digitalRead(k_boot_button) == LOW)
     {
-        g_displayController.setDisplayToTmpText(true, 2);
+        components.display.setDisplayToTmpText(true, 2);
         delay(100);
     }
 }
