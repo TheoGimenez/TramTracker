@@ -1,6 +1,6 @@
 #include <webServer.h>
 
-WebServer::WebServer(uint16_t port) : server(port) {}
+WebServer::WebServer(void) : server(WEBSERVER_PORT) {}
 
 void WebServer::begin(std::function<void(const String &)> callback)
 {

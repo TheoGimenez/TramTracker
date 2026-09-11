@@ -52,7 +52,7 @@ class WebServer
     std::function<void(const String&)> m_onUpdateCallback;
 
 public:
-    WebServer(uint16_t port);
+    WebServer(void);
     ~WebServer() = default;
 public:
     void        begin           (std::function<void(const String&)> onUpdateCallback);
