@@ -45,9 +45,10 @@ private:
     MD_Parola     m_renderer;
     RenderHandler m_renderFunctions[BufferIndex::index_count];
 
-    //* set texts with a multiple buffering to avoid segment fault at read when a text is updated.
+    //* multiple buffer array to avoid segment fault at read when a text is updated.
+    //* the buffer at index 0 is always the writable buffer, the buffer at index 1 is always the main text buffer, and the buffer at index 2 is always the temporary text buffer.
     String        m_textBuffers[3];
-    String*       m_bufferPtrs[3];
+    String*       m_bufferPtrs[3]; // pointers to the buffers that are currently being used for rendering and writing. The other buffer is free to be written to.
     //
     u_int8_t      m_state;
     u_int16_t     m_displayOccurrenceCountdown;
@@ -59,19 +60,19 @@ public:
     void updateDisplay       (void);
 
     void setMainText         (const String& text);
-    void setDisplayToMainText(void);
+    void setDisplayToMainText(bool forceClear = false);
 
     void setTemporaryText    (const String& text);
-    void setDisplayToTmpText (const u_int16_t occurrenceCount = 1);
+    void setDisplayToTmpText (bool forceClear = false, const u_int16_t occurrenceCount = 1);
    
-    void setDisplayToStatic  (void);
+    void setDisplayToStatic  (bool forceClear = false);
 
 private:
     void _renderDefault      (void);
     void _renderTmp          (void);
     void _renderStatic       (void);
     
-    void _swapWritableBuffer (const int bufferToSwap);
+    void _swapWritableBuffer (const BufferIndex bufferToSwap);
 };
 
 #endif //* DISPLAY_CONTROLLER_HPP_

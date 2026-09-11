@@ -39,10 +39,21 @@ DisplayController g_displayController{
 };
 // bool shouldReboot = false; // flag to use from web update to reboot the ESP
 // WiFi Access Point Settings
-const char *const ssid = WIFI_SSID;
-const char *const wifi_password = WIFI_PASSWORD;
+struct {
+    const char *ssid;
+    const char *password;
+} const wifiCredentials PROGMEM = {
+    WIFI_SSID,
+    WIFI_PASSWORD
+};
 //
 WebServer server(WEBSERVER_PORT);
+
+// void onTramLineSelected(const uint32_t selectedLine)
+// {
+//     selectedLine = selectedLine;
+
+// }
 
 void setup()
 {
@@ -55,7 +66,7 @@ void setup()
     //
     //* Setup wifi
     WiFi.mode(WIFI_STA);
-    WiFi.begin(ssid, wifi_password);
+    WiFi.begin(wifiCredentials.ssid, wifiCredentials.password);
     while (WiFi.status() != WL_CONNECTED)
     {
         digitalWrite(2, HIGH);
@@ -80,7 +91,7 @@ void loop()
 
     if (digitalRead(k_boot_button) == LOW)
     {
-        g_displayController.setDisplayToTmpText();
+        g_displayController.setDisplayToTmpText(true, 2);
         delay(100);
     }
 }

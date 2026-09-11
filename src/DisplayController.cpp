@@ -50,14 +50,18 @@ DisplayController::setMainText(const String &text)
 {
     *m_bufferPtrs[BufferIndex::WRITABLE] = text;
     _swapWritableBuffer(BufferIndex::MAIN);
+    m_bufferPtrs[BufferIndex::WRITABLE]->clear();
 }
 
 void
-DisplayController::setDisplayToMainText(void)
+DisplayController::setDisplayToMainText(bool forceClear)
 {
-    m_renderer.displayClear();
     m_renderer.displayScroll(m_bufferPtrs[BufferIndex::MAIN]->c_str(), PA_CENTER, PA_SCROLL_LEFT, 30);
     m_state = RenderState::Default;
+    
+    if (forceClear) {
+        m_renderer.displayClear();
+    }
     updateDisplay();
 }
 
@@ -66,25 +70,32 @@ DisplayController::setTemporaryText(const String& text)
 { 
     *m_bufferPtrs[BufferIndex::WRITABLE] = text;
     _swapWritableBuffer(BufferIndex::TEMPORARY);
+    m_bufferPtrs[BufferIndex::WRITABLE]->clear();
 }
 
 void
-DisplayController::setDisplayToTmpText(const u_int16_t occurrenceCount)
+DisplayController::setDisplayToTmpText(bool forceClear, const u_int16_t occurrenceCount)
 {
     m_displayOccurrenceCountdown = occurrenceCount;
 
-    m_renderer.displayClear();
     m_renderer.displayScroll(m_bufferPtrs[BufferIndex::TEMPORARY]->c_str(), PA_CENTER, PA_SCROLL_LEFT, 70);
     m_state = RenderState::TemporaryMessage;
+    
+    if (forceClear) {
+        m_renderer.displayClear();
+    }
     updateDisplay();
 }
 
 void
-DisplayController::setDisplayToStatic(void)
+DisplayController::setDisplayToStatic(bool forceClear)
 {
-    m_renderer.displayClear();
     m_renderer.displayText(m_bufferPtrs[BufferIndex::TEMPORARY]->c_str(), PA_LEFT, 70, 1000, PA_NO_EFFECT);
     m_state = RenderState::StaticMessage;
+
+    if (forceClear) {
+        m_renderer.displayClear();
+    }
     updateDisplay();
 }
 
@@ -118,8 +129,9 @@ DisplayController::_renderStatic(void)
 }
 
 void
-DisplayController::_swapWritableBuffer(const int bufferToSwap)
+DisplayController::_swapWritableBuffer(const BufferIndex bufferToSwap)
 {
+    assert(bufferToSwap < BufferIndex::index_count);
     String* tmp = m_bufferPtrs[bufferToSwap];
 
     m_bufferPtrs[bufferToSwap] = m_bufferPtrs[BufferIndex::WRITABLE];
