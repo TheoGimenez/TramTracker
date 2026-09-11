@@ -14,3 +14,4 @@ valgrind-out.txt
 
 // TMP
 gtfs-realtime
+.ignored_files/
