@@ -9,5 +9,8 @@ logs/
 proto/
 valgrind-out.txt
 
+// macos
+.DS_Store
+
 // TMP
 gtfs-realtime
