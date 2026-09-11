@@ -15,22 +15,21 @@
 #include <MD_MAX72xx.h>
 #include <SPI.h>
 
-struct md_parola_initializer_list
-{
-    MD_MAX72XX::moduleType_t mod;
-    uint8_t dataPin;
-    uint8_t clkPin;
-    uint8_t csPin;
-    uint8_t numDevices = 1;
-};
+// LED Matrix Conf
+static constexpr auto k_hardware_type = MD_MAX72XX::FC16_HW;
+static constexpr uint8_t k_max_device =  4; // 8x8 matrix devices to use
+static constexpr uint8_t k_data_pin   = 23; // ESP data pin (connect to DIN of matrix)
+static constexpr uint8_t k_clk_pin    = 18; // ESP clock pin (connect to CLK oqf matrix)
+static constexpr uint8_t k_cs_pin     =  5; // ESP chip select pinm (connect to CS/LOAD of matrix)
+                                     // ESP input/output
 
 class DisplayController
 {
     enum BufferIndex
     {
-        WRITABLE = 0,
-        MAIN     = 1,
-        TEMPORARY= 2,
+        MAIN     = 0,
+        TEMPORARY= 1,
+        WRITABLE = 2,
         index_count //* not a usable buffer, only used to get number of buffer defined. Should always be the lastest item.
     };
     enum RenderState
@@ -53,7 +52,7 @@ private:
     u_int8_t      m_state;
     u_int16_t     m_displayOccurrenceCountdown;
 public:
-    DisplayController(md_parola_initializer_list initializer_list, String defaultText);
+    DisplayController(void);
     ~DisplayController() = default;
 public:
     void begin               (void);

@@ -9,20 +9,21 @@
 
 #include "DisplayController.h"
 
-DisplayController::DisplayController(md_parola_initializer_list initializer_list, String defaultText)
-    : m_renderer{
-        initializer_list.mod,
-        initializer_list.dataPin,
-        initializer_list.clkPin,
-        initializer_list.csPin,
-        initializer_list.numDevices
-    },
-    m_renderFunctions{&DisplayController::_renderDefault, &DisplayController::_renderTmp, &DisplayController::_renderStatic},
-    m_textBuffers{defaultText, defaultText, defaultText},
+DisplayController::DisplayController(void) :
+    m_renderer{
+        k_hardware_type, k_max_device, k_data_pin, k_clk_pin, k_cs_pin},
+    m_renderFunctions{
+        &DisplayController::_renderDefault, 
+        &DisplayController::_renderTmp, 
+        &DisplayController::_renderStatic},
+    m_textBuffers{
+        {"No data"},
+        {},
+        {}},
     m_bufferPtrs {
-        &m_textBuffers[BufferIndex::WRITABLE],
         &m_textBuffers[BufferIndex::MAIN],
         &m_textBuffers[BufferIndex::TEMPORARY],
+        &m_textBuffers[BufferIndex::WRITABLE]
     },
     m_displayOccurrenceCountdown{0}
 {
