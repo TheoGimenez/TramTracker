@@ -6,8 +6,9 @@
 .vscode
 */secret.ini
 logs/
-proto/
+protobuf/
 valgrind-out.txt
+.venv/
 
 // macos
 .DS_Store
