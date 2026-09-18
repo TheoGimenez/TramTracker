@@ -13,8 +13,8 @@ from collections import defaultdict
 from pathlib import Path
 
 
-DEFAULT_INPUT = Path("config/gtfs/stop_times.txt")
-DEFAULT_STOPS = Path("config/gtfs/stops.txt")
+DEFAULT_INPUT = Path("data/gtfs/stop_times.txt")
+DEFAULT_STOPS = Path("data/gtfs/stops.txt")
 DEFAULT_OUTPUT = Path("include/generated_stops.h")
 
 
