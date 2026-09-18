@@ -19,6 +19,7 @@ __pycache__
 generated_app_config.h
 generated_stops.h
 // project specific files
-gtfs-realtime
+/data/gtfs/
+
+
 .ignored_files/
-config/gtfs/

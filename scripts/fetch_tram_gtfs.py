@@ -11,7 +11,7 @@ import zipfile
 from pathlib import Path
 
 DEFAULT_URL = "https://gtfsproxy.e-tam.fr/COMMON/GTFS.zip"
-DEFAULT_OUTPUT = Path("config/gtfs")
+DEFAULT_OUTPUT = Path("data/gtfs")
 
 
 def download(url: str, destination: Path) -> None:
@@ -26,7 +26,7 @@ def download(url: str, destination: Path) -> None:
 
 
 def extract_archive(archive_path: Path, output_directory: Path) -> None:
-    """Extract all GTFS files into the project configuration directory."""
+    """Extract all GTFS files into the project data directory."""
     output_directory.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(archive_path) as archive:
         archive.extractall(output_directory)
