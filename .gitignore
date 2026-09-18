@@ -9,10 +9,14 @@ logs/
 protobuf/
 valgrind-out.txt
 .venv/
+.env
+src/generated_app_config.h
+__pycache__
 
 // macos
 .DS_Store
 
-// TMP
+// project specific files
 gtfs-realtime
 .ignored_files/
+config/gtfs/
