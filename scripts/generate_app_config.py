@@ -14,7 +14,7 @@ ROOT = Path(
 if not ROOT.exists():
     ROOT = Path(".").resolve()
 ENV_PATH = ROOT / ".env"
-OUT_PATH = ROOT / "src" / "generated_app_config.h"
+OUT_PATH = ROOT / "include" / "generated_app_config.h"
 
 
 def parse_env(path: Path) -> dict[str, str]:

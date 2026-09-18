@@ -16,10 +16,8 @@ __pycache__
 .DS_Store
 
 // project generated files
-src/generated_app_config.h
-src/generated_stops.h
-
-
+generated_app_config.h
+generated_stops.h
 // project specific files
 gtfs-realtime
 .ignored_files/

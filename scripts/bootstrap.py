@@ -17,7 +17,7 @@ PROJECT_DIR = Path(
 
 GTFS_DIRECTORY = PROJECT_DIR / "config" / "gtfs"
 STOP_TIMES = GTFS_DIRECTORY / "stop_times.txt"
-GENERATED_STOPS = PROJECT_DIR / "src" / "generated_stops.h"
+GENERATED_STOPS = PROJECT_DIR / "include" / "generated_stops.h"
 GENERATE_CONFIG_SCRIPT = PROJECT_DIR / "scripts" / "generate_app_config.py"
 FETCH_SCRIPT = PROJECT_DIR / "scripts" / "fetch_tram_gtfs.py"
 GENERATE_STOP_SCRIPT = PROJECT_DIR / "scripts" / "generate_stops.py"
