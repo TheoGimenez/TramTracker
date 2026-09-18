@@ -18,6 +18,7 @@ __pycache__
 // project generated files
 generated_app_config.h
 generated_stops.h
+/lib/gtfs_rt_pb/
 // project specific files
 /data/gtfs/
 
