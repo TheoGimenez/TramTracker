@@ -8,18 +8,9 @@
 namespace app
 {
     static WiFiClientSecure client;
-//     namespace network
-//     {
-//         enum Status
-//         {
-//             FAILED = 0,
-//             SUCCESS = 1
-//         };
-//     } // namespace network
 }
 
-void
-initializeNetwork(void)
+void initializeNetwork(void)
 {
     app::client.setInsecure();
     app::client.setTimeout(8); // 8s timeout
@@ -35,7 +26,7 @@ openGTFSConnection(void)
     {
         LOG_PRINTLN("Failed to connect")
     }
-LOG_PRINTLN(ok)
+    LOG_PRINTLN(ok)
     return ok;
 }
 
@@ -65,7 +56,7 @@ sendRequest(const char *endpoint)
 }
 
 static bool
-getResponseHeaderParams(int& content_length)
+getResponseHeaderParams(int &content_length)
 {
     const uint32_t deadline = millis() + 5000;
     bool first_line = true;
@@ -83,7 +74,7 @@ getResponseHeaderParams(int& content_length)
             continue;
         }
 
-        String line = app::client.readStringUntil('\n'); 
+        String line = app::client.readStringUntil('\n');
 
         if (line == "\r") // header done
         {
@@ -100,8 +91,7 @@ getResponseHeaderParams(int& content_length)
     return false;
 }
 
-void
-NETWORKUTILS_TEST(void)
+void NETWORKUTILS_TEST(void)
 {
     int content_length = 0;
 
@@ -110,11 +100,8 @@ NETWORKUTILS_TEST(void)
         LOG_PRINTLN("Cannot establish connection")
         return;
     }
+    LOG_PRINTLN("Connection established")
 
-LOG_PRINTLN("Connection established")
-
-LOG_PRINT("client available 1: ")
-LOG_PRINTLN(app::client.available())
     sendRequest(app::kGtfsTripUpdateEndpoint);
     // if (!app::client.connected())
     // {
@@ -122,8 +109,6 @@ LOG_PRINTLN(app::client.available())
     //     return closeGTFSConnection();
     // }
 
-LOG_PRINT("client available 3: ")
-LOG_PRINTLN(app::client.available())
     if (!getResponseHeaderParams(content_length))
     {
         LOG_PRINTLN("No header found")
