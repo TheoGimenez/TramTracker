@@ -23,20 +23,21 @@
 
 namespace hardware
 {
-    constexpr uint8_t k_esp_led    =  2; // esp integrated blue led
-    constexpr uint8_t k_boot_button=  0; // esp boot button
+    constexpr uint8_t k_esp_led = 2;     // esp integrated blue led
+    constexpr uint8_t k_boot_button = 0; // esp boot button
 } // namespace hardware
 
 //
 namespace app
 {
     DisplayController display; // LED Matrix Controller
-    WebServer webserver; // Webserver to control the display
+    WebServer webserver;       // Webserver to control the display
 }
 
-struct {
+struct
+{
     uint16_t id = 0;
-    const char* name = nullptr;
+    const char *name = nullptr;
 } selectedStop;
 
 void setSelectedStop(const uint16_t stopId)
@@ -47,7 +48,9 @@ void setSelectedStop(const uint16_t stopId)
 
 void setup()
 {
+#ifdef TRAM_DEBUG
     Serial.begin(115200);
+#endif
     pinMode(hardware::k_esp_led, OUTPUT);
     pinMode(hardware::k_boot_button, INPUT_PULLDOWN);
     //
@@ -68,10 +71,10 @@ void setup()
     app::display.setTemporaryText(WiFi.localIP().toString());
     //
     //* Setup webserver
-    app::webserver.begin([](String selectedLine) {
+    app::webserver.begin([](String selectedLine)
+                         {
         app::display.setMainText(selectedLine);
-        app::display.setDisplayToMainText();
-    });
+        app::display.setDisplayToMainText(); });
     //
     //* Setup network client
     initializeNetwork();
@@ -85,23 +88,6 @@ void setup()
 void loop()
 {
     app::display.updateDisplay();
-
-    // if (WiFi.status() != WL_CONNECTED) //! NOP GROSSE DAUBASSE 
-    // {
-    //     switch(app::display.getState())
-    //     {
-    //     case DisplayController::RenderState::Default:
-    //         app::display.setTemporaryText("WF.Co...");
-    //         app::display.setDisplayToStatic();
-    //         break;
-    //     case DisplayController::RenderState::TemporaryMessage:
-    //         app::display.setTemporaryText("WF.Co...");
-    //         app::display.setDisplayToStatic();
-    //         break;
-    //     default:
-    //         break;
-    //     }
-    // }
 
     if (digitalRead(hardware::k_boot_button) == LOW)
     {

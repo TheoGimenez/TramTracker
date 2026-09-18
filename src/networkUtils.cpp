@@ -1,6 +1,7 @@
 
 #include "networkUtils.h"
 
+#include "utils.h"
 #include <WiFiClientSecure.h>
 #include "generated_app_config.h"
 
@@ -32,9 +33,9 @@ openGTFSConnection(void)
     int ok = app::client.connect(app::kGtfsBaseUrl, app::kGtfsPort);
     if (!ok)
     {
-        Serial.println("Failed to connect");
+        LOG_PRINTLN("Failed to connect")
     }
-Serial.println(ok);
+LOG_PRINTLN(ok)
     return ok;
 }
 
@@ -75,7 +76,7 @@ getResponseHeaderParams(int& content_length)
         {
             if (!app::client.connected())
             {
-                Serial.println("Connection closed before HTTP headers");
+                LOG_PRINTLN("Connection closed before HTTP headers")
                 return false;
             }
             delay(10);
@@ -95,7 +96,7 @@ getResponseHeaderParams(int& content_length)
         }
     }
 
-    Serial.println("Timeout waiting for HTTP headers");
+    LOG_PRINTLN("Timeout waiting for HTTP headers")
     return false;
 }
 
@@ -106,31 +107,31 @@ NETWORKUTILS_TEST(void)
 
     if (!openGTFSConnection())
     {
-        Serial.println("Cannot establish connection");
+        LOG_PRINTLN("Cannot establish connection")
         return;
     }
 
-Serial.println("Connection established");
+LOG_PRINTLN("Connection established")
 
-Serial.print("client available 1: ");
-Serial.println(app::client.available());
+LOG_PRINT("client available 1: ")
+LOG_PRINTLN(app::client.available())
     sendRequest(app::kGtfsTripUpdateEndpoint);
     // if (!app::client.connected())
     // {
-    //     Serial.println("Connection lost");
+    //     LOG_PRINTLN("Connection lost")
     //     return closeGTFSConnection();
     // }
 
-Serial.print("client available 3: ");
-Serial.println(app::client.available());
+LOG_PRINT("client available 3: ")
+LOG_PRINTLN(app::client.available())
     if (!getResponseHeaderParams(content_length))
     {
-        Serial.println("No header found");
+        LOG_PRINTLN("No header found")
         return closeGTFSConnection();
     }
     if (content_length == 0)
     {
-        Serial.println("No content-length");
+        LOG_PRINTLN("No content-length")
         return closeGTFSConnection();
     }
     closeGTFSConnection();
