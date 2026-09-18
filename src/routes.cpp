@@ -3,7 +3,7 @@
 #include <cstring>
 
 const char*
-getStopName(const uint16_t stop_id)
+getStopName(const uint32_t stop_id)
 {
     // binary search from the array.
     size_t left = 0;
@@ -30,10 +30,10 @@ getStopName(const uint16_t stop_id)
 // can't differ bus stop from tram stop or multiple stop platform
 // in case of multiple stop id that share a name will return the first id
 // (lowest value)
-uint16_t
+uint32_t
 getStopId(const char* stopName, const size_t stopNameLength)
 { 
-    uint16_t idx = 0;
+    size_t idx = 0;
 
     if (stopName == nullptr) return 0;
 
@@ -53,7 +53,7 @@ getStopId(const char* stopName, const size_t stopNameLength)
     return 0; 
 }
 
-uint16_t
+uint32_t
 getStopId(const char* stopName)
 {
     return getStopId(stopName, std::strlen(stopName));
