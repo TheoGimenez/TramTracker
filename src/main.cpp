@@ -15,37 +15,49 @@
 
 #include <WiFi.h>
 
+#include "generated_app_config.h"
 #include "DisplayController.h"
 #include "webServer.h"
+#include "networkUtils.h"
+#include "route.h"
 
-constexpr uint8_t k_esp_led    =  2; // esp integrated blue led
-constexpr uint8_t k_boot_button=  0; // esp boot button
-// WiFi Access Point Settings
-struct {
-    const char *ssid;
-    const char *password;
-} const wifiCredentials PROGMEM = {
-    WIFI_SSID,
-    WIFI_PASSWORD
-};
+namespace hardware
+{
+    constexpr uint8_t k_esp_led    =  2; // esp integrated blue led
+    constexpr uint8_t k_boot_button=  0; // esp boot button
+} // namespace hardware
+
 //
-struct {
+namespace app
+{
     DisplayController display; // LED Matrix Controller
     WebServer webserver; // Webserver to control the display
-} components = {{}, {}};
+}
+
+struct {
+    uint16_t id = 0;
+    const char* name = nullptr;
+} selectedStop;
+
+void setSelectedStop(const uint16_t stopId)
+{
+    selectedStop.id = stopId;
+    selectedStop.name = getStopName(stopId);
+}
 
 void setup()
 {
     Serial.begin(115200);
-    pinMode(k_esp_led, OUTPUT);
-    pinMode(k_boot_button, INPUT_PULLDOWN);
+    pinMode(hardware::k_esp_led, OUTPUT);
+    pinMode(hardware::k_boot_button, INPUT_PULLDOWN);
     //
     //* Setup display
-    components.display.begin();
+    app::display.begin();
     //
     //* Setup wifi
     WiFi.mode(WIFI_STA);
-    WiFi.begin(wifiCredentials.ssid, wifiCredentials.password);
+    WiFi.begin(app::kWifiSsid, app::kWifiPassword);
+    WiFi.setAutoReconnect(true);
     while (WiFi.status() != WL_CONNECTED)
     {
         digitalWrite(2, HIGH);
@@ -53,24 +65,47 @@ void setup()
         digitalWrite(2, LOW);
         delay(100);
     }
-    components.display.setTemporaryText(WiFi.localIP().toString());
+    app::display.setTemporaryText(WiFi.localIP().toString());
     //
     //* Setup webserver
-    components.webserver.begin([](String selectedLine) {
-        components.display.setMainText(selectedLine);
-        components.display.setDisplayToMainText();
+    app::webserver.begin([](String selectedLine) {
+        app::display.setMainText(selectedLine);
+        app::display.setDisplayToMainText();
     });
     //
-    // setup socket
+    //* Setup network client
+    initializeNetwork();
+    //* Setup protobuff
+
+    //! API PROTOBUF TAM
+    //* TESTING
+    NETWORKUTILS_TEST();
 }
 
 void loop()
 {
-    components.display.updateDisplay();
+    app::display.updateDisplay();
 
-    if (digitalRead(k_boot_button) == LOW)
+    // if (WiFi.status() != WL_CONNECTED) //! NOP GROSSE DAUBASSE 
+    // {
+    //     switch(app::display.getState())
+    //     {
+    //     case DisplayController::RenderState::Default:
+    //         app::display.setTemporaryText("WF.Co...");
+    //         app::display.setDisplayToStatic();
+    //         break;
+    //     case DisplayController::RenderState::TemporaryMessage:
+    //         app::display.setTemporaryText("WF.Co...");
+    //         app::display.setDisplayToStatic();
+    //         break;
+    //     default:
+    //         break;
+    //     }
+    // }
+
+    if (digitalRead(hardware::k_boot_button) == LOW)
     {
-        components.display.setDisplayToTmpText(true, 2);
+        app::display.setDisplayToTmpText(true, 2);
         delay(100);
     }
 }

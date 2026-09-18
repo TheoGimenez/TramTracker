@@ -9,23 +9,25 @@
 
 #include "DisplayController.h"
 
-DisplayController::DisplayController(void) :
-    m_renderer{
-        k_hardware_type, k_max_device, k_data_pin, k_clk_pin, k_cs_pin},
-    m_renderFunctions{
-        &DisplayController::_renderDefault, 
-        &DisplayController::_renderTmp, 
-        &DisplayController::_renderStatic},
-    m_textBuffers{
-        {"No data"},
-        {},
-        {}},
-    m_bufferPtrs {
-        &m_textBuffers[BufferIndex::MAIN],
-        &m_textBuffers[BufferIndex::TEMPORARY],
-        &m_textBuffers[BufferIndex::WRITABLE]
-    },
-    m_displayOccurrenceCountdown{0}
+DisplayController::DisplayController(void) : m_renderer{
+                                                 hardware::k_hardware_type,
+                                                 hardware::k_max_device,
+                                                 hardware::k_data_pin,
+                                                 hardware::k_clk_pin,
+                                                 hardware::k_cs_pin},
+                                             m_renderFunctions{
+                                                 &DisplayController::_renderDefault,
+                                                 &DisplayController::_renderTmp,
+                                                 &DisplayController::_renderStatic},
+                                             m_textBuffers{
+                                                 {"No data"},
+                                                 {},
+                                                 {}},
+                                             m_bufferPtrs{
+                                                 &m_textBuffers[BufferIndex::MAIN],
+                                                 &m_textBuffers[BufferIndex::TEMPORARY],
+                                                 &m_textBuffers[BufferIndex::WRITABLE]},
+                                             m_displayOccurrenceCountdown{0}
 {
     // MD_Parola m_renderer need to be initialized in setup() function before display anything.
 }

@@ -1,6 +1,7 @@
 #include <webServer.h>
+#include "generated_app_config.h"
 
-WebServer::WebServer(void) : server(WEBSERVER_PORT) {}
+WebServer::WebServer(void) : server(app::kWebServerPort) {}
 
 void WebServer::begin(std::function<void(const String &)> callback)
 {

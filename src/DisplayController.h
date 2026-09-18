@@ -16,13 +16,14 @@
 #include <SPI.h>
 
 // LED Matrix Conf
-static constexpr auto k_hardware_type = MD_MAX72XX::FC16_HW;
-static constexpr uint8_t k_max_device =  4; // 8x8 matrix devices to use
-static constexpr uint8_t k_data_pin   = 23; // ESP data pin (connect to DIN of matrix)
-static constexpr uint8_t k_clk_pin    = 18; // ESP clock pin (connect to CLK oqf matrix)
-static constexpr uint8_t k_cs_pin     =  5; // ESP chip select pinm (connect to CS/LOAD of matrix)
+namespace hardware {
+constexpr auto k_hardware_type = MD_MAX72XX::FC16_HW;
+constexpr uint8_t k_max_device =  4; // 8x8 matrix devices to use
+constexpr uint8_t k_data_pin   = 23; // ESP data pin (connect to DIN of matrix)
+constexpr uint8_t k_clk_pin    = 18; // ESP clock pin (connect to CLK oqf matrix)
+constexpr uint8_t k_cs_pin     =  5; // ESP chip select pinm (connect to CS/LOAD of matrix)
                                      // ESP input/output
-
+}
 class DisplayController
 {
     enum BufferIndex
@@ -32,25 +33,26 @@ class DisplayController
         WRITABLE = 2,
         index_count //* not a usable buffer, only used to get number of buffer defined. Should always be the lastest item.
     };
+    using RenderHandler = void (DisplayController::*)(void);
+
+    MD_Parola     m_renderer;
+    RenderHandler m_renderFunctions[BufferIndex::index_count];
+
+    //* multiple buffer array to avoid segment fault at read when a text is updated.
+    //* the buffer at index BufferIndex::WRITABLE (2) is always the writable buffer, the buffer at index 1 is always the main text buffer, and the buffer at index 2 is always the temporary text buffer.
+    String        m_textBuffers[3];
+    String*       m_bufferPtrs[3]; // pointers to the buffers that are currently being used for rendering and writing. The other buffer is free to be written to.
+    //
+    u_int8_t      m_state;
+    u_int16_t     m_displayOccurrenceCountdown;
+
+public:
     enum RenderState
     {
         Default = 0,
         TemporaryMessage = 1,
         StaticMessage = 2
     };
-    using RenderHandler = void (DisplayController::*)(void);
-
-private:
-    MD_Parola     m_renderer;
-    RenderHandler m_renderFunctions[BufferIndex::index_count];
-
-    //* multiple buffer array to avoid segment fault at read when a text is updated.
-    //* the buffer at index 0 is always the writable buffer, the buffer at index 1 is always the main text buffer, and the buffer at index 2 is always the temporary text buffer.
-    String        m_textBuffers[3];
-    String*       m_bufferPtrs[3]; // pointers to the buffers that are currently being used for rendering and writing. The other buffer is free to be written to.
-    //
-    u_int8_t      m_state;
-    u_int16_t     m_displayOccurrenceCountdown;
 public:
     DisplayController(void);
     ~DisplayController() = default;
