@@ -134,7 +134,7 @@ message TripUpdate {
     // Must be the same as in stop_times.txt in the corresponding GTFS feed.
     optional uint32 stop_sequence = 1;
     // Must be the same as in stops.txt in the corresponding GTFS feed.
-    optional string stop_id = 4 [(nanopb).max_size = 8];
+    optional string stop_id = 4 [(nanopb).max_size = 16];
 
     optional StopTimeEvent arrival = 2;
     optional StopTimeEvent departure = 3;
