@@ -8,18 +8,21 @@
  */
 
 #include <Arduino.h>
-
+#include <esp_timer.h> //! FOR DEBUG
+#include <esp_sntp.h> // use of time_t
 #include <MD_Parola.h>
 #include <MD_MAX72xx.h>
 #include <SPI.h>
-
 #include <WiFi.h>
-
-#include "generated_app_config.h"
+//
 #include "DisplayController.h"
-#include "webServer.h"
+#include "generated_app_config.h"
+#include "generated_stops.h"
 #include "networkUtils.h"
 #include "route.h"
+#include "tripUpdate.h"
+#include "utils.h"
+#include "webServer.h"
 
 namespace hardware
 {
@@ -32,25 +35,29 @@ namespace app
 {
     DisplayController display; // LED Matrix Controller
     WebServer webserver;       // Webserver to control the display
+    
+    struct
+    {
+        uint32_t    id              = 0;
+        uint32_t    routeId         = 0;
+        time_t      nextArrivalTime = 0;
+        time_t      NextArrivalDate = 0;
+        char* const fullName        = nullptr;
+    } selectedStop;
 }
 
-struct
-{
-    uint16_t id = 0;
-    const char *name = nullptr;
-} selectedStop;
-
-void setSelectedStop(const uint16_t stopId)
-{
-    selectedStop.id = stopId;
-    selectedStop.name = getStopName(stopId);
-}
+// void setSelectedStop(const uint16_t stopId, const uint16_t routeId) //!prototype
+// {
+    // app::context.selectedStop.id       = stopId;
+    // app::context.selectedStop.routeId  = routeId;
+    // app::context.selectedStop.fullName = getStopName(stopId);
+// }
 
 void setup()
 {
-#ifdef TRAM_DEBUG
+#   ifdef TRAM_DEBUG
     Serial.begin(115200);
-#endif
+#   endif
     pinMode(hardware::k_esp_led, OUTPUT);
     pinMode(hardware::k_boot_button, INPUT_PULLDOWN);
     //
@@ -74,15 +81,22 @@ void setup()
     app::webserver.begin([](String selectedLine)
                          {
         app::display.setMainText(selectedLine);
-        app::display.setDisplayToMainText(); });
+        app::display.setDisplayToMainText();
+    });
     //
     //* Setup network client
     initializeNetwork();
+    //* Setup selected stop
+    app::selectedStop.id = getStopId("Place Carnot"); // place carnot
+    app::selectedStop.routeId = 3; // Ligne 3
+    //
     //* Setup protobuff
-
-    //! API PROTOBUF TAM
-    //* TESTING
-    NETWORKUTILS_TEST();
+    // first call
+    time_t nextArrival = fetchNextTimeArrival(app::selectedStop.id, app::selectedStop.routeId);
+    // String time((nexArrival - now()) * 1000 / 60); 
+    // app::display.setMainText(app::selectedStop.fullName + String(" dans " + time + "min"));
+    LOG_PRINTLN("NEXT ARRIVAL=")
+    LOG_PRINTLN(nextArrival)
 }
 
 void loop()
