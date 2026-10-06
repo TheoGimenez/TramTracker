@@ -11,6 +11,7 @@ valgrind-out.txt
 .venv/
 .env
 __pycache__
+TODO
 
 // macos
 .DS_Store
