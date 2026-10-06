@@ -1,6 +1,23 @@
+/*
+ * File: route.cpp
+ * Project: ESP32 TramTracker
+ * File Created: Wednesday, 30th September 2026 9:23:44, pm
+ * Author: Nathan Fain
+ * -----
+ * Last Modified: Tuesday, October 6th 2026, 11:47:22 am
+ * Modified By: Theo Gimenez
+ * -----
+ * Description: 
+ */
 
-#include "generated_stops.h"
+#include "route.h"
+//
 #include <cstring>
+#include <inttypes.h> // requiered for PRIu32
+#include <stdio.h>
+#include <stdint.h>
+//
+#include "generated_stops.h"
 
 const char*
 getStopName(const uint32_t stop_id)
@@ -28,7 +45,7 @@ getStopName(const uint32_t stop_id)
 }
 
 // can't differ bus stop from tram stop or multiple stop platform
-// in case of multiple stop id that share a name will return the first id
+// in case of multiple stop id that share a name, will return the first id
 // (lowest value)
 uint32_t
 getStopId(const char* stopName, const size_t stopNameLength)
@@ -57,4 +74,16 @@ uint32_t
 getStopId(const char* stopName)
 {
     return getStopId(stopName, std::strlen(stopName));
+}
+
+char*
+pbNbrToStr(uint32_t id, char* dest, const size_t capacity)
+{
+    assert(dest != nullptr);
+    memset(dest, 0, capacity);
+
+    const uint32_t written = snprintf(dest, capacity, "%" PRIu32, id);
+    dest[written < 0 ? 0 : written] = '\0';
+
+    return dest;
 }

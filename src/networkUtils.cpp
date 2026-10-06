@@ -1,8 +1,19 @@
+/*
+ * File: /src/networkUtils.cpp
+ * Project: ESP32 TramTracker
+ * Created Date: 17-09-2026, 3:46:21 pm
+ * Author: Theo Gimenez
+ * -----
+ * Last Modified: Tuesday, October 6th 2026, 12:11:34 pm
+ * Modified By: Theo Gimenez
+ * -----
+ */
 
 #include "networkUtils.h"
 
 #include "utils.h"
 #include <WiFiClientSecure.h>
+
 #include "generated_app_config.h"
 
 namespace app
@@ -10,13 +21,14 @@ namespace app
     static WiFiClientSecure client;
 }
 
-void initializeNetwork(void)
+void
+initializeNetwork(void)
 {
     app::client.setInsecure();
     app::client.setTimeout(8); // 8s timeout
 }
 
-static int
+int
 openGTFSConnection(void)
 {
     app::client.stop();
@@ -30,13 +42,13 @@ openGTFSConnection(void)
     return ok;
 }
 
-static void
+void
 closeGTFSConnection(void)
 {
     app::client.stop();
 }
 
-static void
+void
 sendRequest(const char *endpoint)
 {
     // app::client.printf(F(
@@ -55,11 +67,11 @@ sendRequest(const char *endpoint)
     app::client.println();
 }
 
-static bool
-getResponseHeaderParams(int &content_length)
+uint32_t 
+getContentLength(void)
 {
     const uint32_t deadline = millis() + 5000;
-    bool first_line = true;
+    uint32_t content_length = 0;
 
     while (millis() < deadline)
     {
@@ -68,7 +80,7 @@ getResponseHeaderParams(int &content_length)
             if (!app::client.connected())
             {
                 LOG_PRINTLN("Connection closed before HTTP headers")
-                return false;
+                return content_length;
             }
             delay(10);
             continue;
@@ -78,9 +90,9 @@ getResponseHeaderParams(int &content_length)
 
         if (line == "\r") // header done
         {
-            return true;
+            return content_length;
         }
-
+LOG_PRINTLN(line)
         if (line.startsWith(F("Content-Length:")))
         {
             content_length = line.substring(16).toInt();
@@ -88,36 +100,37 @@ getResponseHeaderParams(int &content_length)
     }
 
     LOG_PRINTLN("Timeout waiting for HTTP headers")
-    return false;
+    return content_length;
 }
 
-void NETWORKUTILS_TEST(void)
+bool
+readResponseBytes(uint8_t* buffer, size_t count)
 {
-    int content_length = 0;
+    const uint32_t timeout = millis() + 5000;
+    size_t total_read = 0;
 
-    if (!openGTFSConnection())
+    while (total_read < count)
     {
-        LOG_PRINTLN("Cannot establish connection")
-        return;
-    }
-    LOG_PRINTLN("Connection established")
+        if (millis() > timeout)
+        {
+            return false;
+        }
 
-    sendRequest(app::kGtfsTripUpdateEndpoint);
-    // if (!app::client.connected())
-    // {
-    //     LOG_PRINTLN("Connection lost")
-    //     return closeGTFSConnection();
-    // }
+        if (app::client.available())
+        {
+            int byte_read = app::client.read(buffer + total_read, count - total_read);
 
-    if (!getResponseHeaderParams(content_length))
-    {
-        LOG_PRINTLN("No header found")
-        return closeGTFSConnection();
+            if (byte_read < 0)
+            {
+                return false;
+            }
+            total_read += size_t(byte_read);
+        }
+        else if (!app::client.connected())
+        {
+            // brutal disconnection.
+            return false;
+        }
     }
-    if (content_length == 0)
-    {
-        LOG_PRINTLN("No content-length")
-        return closeGTFSConnection();
-    }
-    closeGTFSConnection();
+    return true;
 }

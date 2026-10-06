@@ -21,7 +21,7 @@ constexpr auto k_hardware_type = MD_MAX72XX::FC16_HW;
 constexpr uint8_t k_max_device =  4; // 8x8 matrix devices to use
 constexpr uint8_t k_data_pin   = 23; // ESP data pin (connect to DIN of matrix)
 constexpr uint8_t k_clk_pin    = 18; // ESP clock pin (connect to CLK oqf matrix)
-constexpr uint8_t k_cs_pin     =  5; // ESP chip select pinm (connect to CS/LOAD of matrix)
+constexpr uint8_t k_cs_pin     =  5; // ESP chip select pin (connect to CS/LOAD of matrix)
                                      // ESP input/output
 }
 class DisplayController

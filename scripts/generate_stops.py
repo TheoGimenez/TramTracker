@@ -125,7 +125,7 @@ def generate_header(stops: dict[int, str], output_path: Path, input_path: Path) 
         output.write("    uint32_t id;\n")
         output.write("    uint16_t name_offset;\n")
         output.write("};\n\n")
-        output.write("inline constexpr char kStopNames[] =\n")
+        output.write("inline constexpr char const kStopNames[] =\n")
         for name in names:
             output.write(f'    "{escape_cpp_string(name)}\\0"\n')
         output.write("    ;\n\n")
