@@ -4,7 +4,7 @@
  * Created Date: 17-09-2026, 3:46:21 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 6th 2026, 12:11:34 pm
+ * Last Modified: Tuesday, October 6th 2026, 5:03:05 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -51,12 +51,6 @@ closeGTFSConnection(void)
 void
 sendRequest(const char *endpoint)
 {
-    // app::client.printf(F(
-    //     "GET %s HTTP/1.1\r\n"
-    //     "Host: "GTFS_BASE_URL"\r\n"
-    //     "Accept: application/octet-stream\r\n"
-    //     "Connection: close\r\n\r\n"),
-    //     endpoint);
     app::client.print(F("GET "));
     app::client.print(endpoint);
     app::client.println(F(" HTTP/1.1"));
@@ -92,7 +86,7 @@ getContentLength(void)
         {
             return content_length;
         }
-LOG_PRINTLN(line)
+        
         if (line.startsWith(F("Content-Length:")))
         {
             content_length = line.substring(16).toInt();

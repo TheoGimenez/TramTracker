@@ -4,7 +4,7 @@
  * File Created: Wednesday, 30th September 2026 9:23:44, pm
  * Author: Nathan Fain
  * -----
- * Last Modified: Tuesday, October 6th 2026, 11:47:22 am
+ * Last Modified: Tuesday, October 6th 2026, 2:44:55 pm
  * Modified By: Theo Gimenez
  * -----
  * Description: 
@@ -13,7 +13,6 @@
 #include "route.h"
 //
 #include <cstring>
-#include <inttypes.h> // requiered for PRIu32
 #include <stdio.h>
 #include <stdint.h>
 //
@@ -74,16 +73,4 @@ uint32_t
 getStopId(const char* stopName)
 {
     return getStopId(stopName, std::strlen(stopName));
-}
-
-char*
-pbNbrToStr(uint32_t id, char* dest, const size_t capacity)
-{
-    assert(dest != nullptr);
-    memset(dest, 0, capacity);
-
-    const uint32_t written = snprintf(dest, capacity, "%" PRIu32, id);
-    dest[written < 0 ? 0 : written] = '\0';
-
-    return dest;
 }
