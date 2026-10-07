@@ -125,17 +125,17 @@ def generate_header(stops: dict[int, str], output_path: Path, input_path: Path) 
         output.write("    uint32_t id;\n")
         output.write("    uint16_t name_offset;\n")
         output.write("};\n\n")
-        output.write("inline constexpr char const kStopNames[] =\n")
+        output.write("inline constexpr char const k_stop_names[] =\n")
         for name in names:
             output.write(f'    "{escape_cpp_string(name)}\\0"\n')
         output.write("    ;\n\n")
-        output.write("inline constexpr Stop kStops[] = {\n")
+        output.write("inline constexpr Stop k_stops[] = {\n")
         for stop_id, offset in entries:
             output.write(f"    {{{stop_id}, {offset}}},\n")
         output.write("};\n\n")
         output.write(
-            "inline constexpr size_t kStopCount = "
-            "sizeof(kStops) / sizeof(kStops[0]);\n\n"
+            "inline constexpr size_t k_stop_count = "
+            "sizeof(k_stops) / sizeof(k_stops[0]);\n\n"
         )
         output.write("}  // namespace gtfs\n")
 

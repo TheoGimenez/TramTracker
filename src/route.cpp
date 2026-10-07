@@ -4,7 +4,7 @@
  * File Created: Wednesday, 30th September 2026 9:23:44, pm
  * Author: Nathan Fain
  * -----
- * Last Modified: Tuesday, October 6th 2026, 2:44:55 pm
+ * Last Modified: Wednesday, October 7th 2026, 10:42:08 am
  * Modified By: Theo Gimenez
  * -----
  * Description: 
@@ -19,22 +19,22 @@
 #include "generated_stops.h"
 
 const char*
-getStopName(const uint32_t stop_id)
+get_stop_name(const uint32_t stopId)
 {
     // binary search from the array.
-    size_t left = 0;
-    size_t right = gtfs::kStopCount;
+    size_t left  = 0;
+    size_t right = gtfs::k_stop_count;
 
     while (left < right)
     {
         size_t middle = left + (right - left) / 2;
 
-        if (gtfs::kStops[middle].id == stop_id)
+        if (gtfs::k_stops[middle].id == stopId)
         {
-            return gtfs::kStopNames + gtfs::kStops[middle].name_offset;
+            return gtfs::k_stop_names + gtfs::k_stops[middle].name_offset;
         }
 
-        if (gtfs::kStops[middle].id < stop_id)
+        if (gtfs::k_stops[middle].id < stopId)
             left = middle + 1;
         else
             right = middle;
@@ -47,22 +47,22 @@ getStopName(const uint32_t stop_id)
 // in case of multiple stop id that share a name, will return the first id
 // (lowest value)
 uint32_t
-getStopId(const char* stopName, const size_t stopNameLength)
+get_stop_id(const char* stopName, const size_t stopNameLength)
 { 
     size_t idx = 0;
 
     if (stopName == nullptr) return 0;
 
     // algo in case of stopName is assured to be in the table.
-    while (idx != gtfs::kStopCount)
+    while (idx != gtfs::k_stop_count)
     {
-        const char* tmp = gtfs::kStopNames + gtfs::kStops[idx].name_offset;
+        const char* tmp = gtfs::k_stop_names + gtfs::k_stops[idx].name_offset;
     
         if(
             memcmp(stopName, tmp, stopNameLength) == 0
             && tmp[stopNameLength] == 0)
         {
-            return gtfs::kStops[idx].id;
+            return gtfs::k_stops[idx].id;
         }
         ++idx;
     }   
@@ -70,7 +70,7 @@ getStopId(const char* stopName, const size_t stopNameLength)
 }
 
 uint32_t
-getStopId(const char* stopName)
+get_stop_id(const char* stopName)
 {
-    return getStopId(stopName, std::strlen(stopName));
+    return get_stop_id(stopName, std::strlen(stopName));
 }

@@ -4,16 +4,16 @@
  * Created Date: 17-09-2026, 3:46:21 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 6th 2026, 5:03:05 pm
+ * Last Modified: Wednesday, October 7th 2026, 11:49:13 am
  * Modified By: Theo Gimenez
  * -----
  */
 
 #include "networkUtils.h"
-
+//
 #include "utils.h"
 #include <WiFiClientSecure.h>
-
+//
 #include "generated_app_config.h"
 
 namespace app
@@ -22,18 +22,18 @@ namespace app
 }
 
 void
-initializeNetwork(void)
+initialize_network(void)
 {
     app::client.setInsecure();
-    app::client.setTimeout(8); // 8s timeout
+    app::client.setTimeout(5); // 5s timeout
 }
 
 int
-openGTFSConnection(void)
+open_gtfs_connection(void)
 {
     app::client.stop();
 
-    int ok = app::client.connect(app::kGtfsBaseUrl, app::kGtfsPort);
+    int ok = app::client.connect(app::k_gtfs_base_url, app::k_gtfs_port);
     if (!ok)
     {
         LOG_PRINTLN("Failed to connect")
@@ -43,29 +43,29 @@ openGTFSConnection(void)
 }
 
 void
-closeGTFSConnection(void)
+close_gtfs_connection(void)
 {
     app::client.stop();
 }
 
 void
-sendRequest(const char *endpoint)
+send_request(const char *endpoint)
 {
     app::client.print(F("GET "));
     app::client.print(endpoint);
     app::client.println(F(" HTTP/1.1"));
     app::client.print(F("Host: "));
-    app::client.println(app::kGtfsBaseUrl);
+    app::client.println(app::k_gtfs_base_url);
     app::client.println(F("Accept: application/octet-stream"));
     app::client.println(F("Connection: close"));
     app::client.println();
 }
 
 uint32_t 
-getContentLength(void)
+get_content_length(void)
 {
-    const uint32_t deadline = millis() + 5000;
-    uint32_t content_length = 0;
+    const uint32_t deadline       = millis() + 5000;
+    uint32_t       content_length = 0;
 
     while (millis() < deadline)
     {
@@ -98,10 +98,10 @@ getContentLength(void)
 }
 
 bool
-readResponseBytes(uint8_t* buffer, size_t count)
+read_response_bytes(uint8_t* buffer, size_t count)
 {
-    const uint32_t timeout = millis() + 5000;
-    size_t total_read = 0;
+    const uint32_t timeout    = millis() + 5000;
+    size_t         total_read = 0;
 
     while (total_read < count)
     {
@@ -112,7 +112,7 @@ readResponseBytes(uint8_t* buffer, size_t count)
 
         if (app::client.available())
         {
-            int byte_read = app::client.read(buffer + total_read, count - total_read);
+            int32_t byte_read = app::client.read(buffer + total_read, count - total_read);
 
             if (byte_read < 0)
             {

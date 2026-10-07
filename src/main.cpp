@@ -32,24 +32,24 @@ namespace hardware
 //
 namespace app
 {
-    DisplayController display; // LED Matrix Controller
-    WebServer webserver;       // Webserver to control the display
+    DisplayController display;   // LED Matrix Controller
+    WebServer         webserver; // Webserver to control the display
     
+    // anonym struct that only used here
     struct
     {
-        uint32_t    id              = 0;
-        uint32_t    routeId         = 0;
-        time_t      nextArrivalTime = 0;
-        time_t      NextArrivalDate = 0;
-        char* const fullName        = nullptr;
+        uint32_t    id                   = 0;
+        uint32_t    route_id             = 0;
+        time_t      next_arrival_time[2] = {0}; // next arrival time for the 2 direction (0 or 1)
+        char* const fullName             = nullptr;
     } selectedStop;
 }
 
-// void setSelectedStop(const uint16_t stopId, const uint16_t routeId) //!prototype
+// void set_selected_stop(const uint16_t stopId, const uint16_t routeId) //!prototype
 // {
     // app::context.selectedStop.id       = stopId;
-    // app::context.selectedStop.routeId  = routeId;
-    // app::context.selectedStop.fullName = getStopName(stopId);
+    // app::context.selectedStop.route_id = routeId;
+    // app::context.selectedStop.fullName = get_stop_name(stopId);
 // }
 
 void setup()
@@ -65,7 +65,7 @@ void setup()
     //
     //* Setup wifi
     WiFi.mode(WIFI_STA);
-    WiFi.begin(app::kWifiSsid, app::kWifiPassword);
+    WiFi.begin(app::k_wifi_ssid, app::k_wifi_password);
     WiFi.setAutoReconnect(true);
     while (WiFi.status() != WL_CONNECTED)
     {
@@ -84,19 +84,19 @@ void setup()
     });
     //
     //* Setup network client
-    initializeNetwork();
+    initialize_network();
     //* Setup selected stop
-    app::selectedStop.id = getStopId("Place Carnot"); // place carnot
-    app::selectedStop.routeId = 3; // Ligne 3
+    app::selectedStop.id = get_stop_id("Place Carnot"); // place carnot
+    app::selectedStop.route_id = 3; // Ligne 3
     //
     //* Setup protobuff
     // first call
     // time_t nextArrival =
-    auto nextArrival = fetchNextTimeArrival(app::selectedStop.id, app::selectedStop.routeId);
-    if (nextArrival.has_value())
+    auto next_arrival = fetch_next_time_arrival(app::selectedStop.id, app::selectedStop.route_id);
+    if (next_arrival.has_value())
     {
         LOG_PRINT("NEXT ARRIVAL=")
-        LOG_PRINTLN(nextArrival.value())
+        LOG_PRINTLN(next_arrival.value())
     }
     else
     {

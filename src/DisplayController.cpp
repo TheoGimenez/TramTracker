@@ -134,7 +134,7 @@ DisplayController::_renderStatic(void)
 void
 DisplayController::_swapWritableBuffer(const BufferIndex bufferToSwap)
 {
-    assert(bufferToSwap < BufferIndex::index_count);
+    assert(bufferToSwap < BufferIndex::buffer_index_count);
     String* tmp = m_bufferPtrs[bufferToSwap];
 
     m_bufferPtrs[bufferToSwap] = m_bufferPtrs[BufferIndex::WRITABLE];

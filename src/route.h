@@ -4,19 +4,19 @@
  * Created Date: 18-09-2026, 10:20:38 am
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 6th 2026, 3:27:58 pm
+ * Last Modified: Wednesday, October 7th 2026, 11:51:19 am
  * Modified By: Theo Gimenez
  * -----
  */
 
-#ifndef ROUTE_H_
-#define ROUTE_H_
+#ifndef SRC_ROUTE_H_
+#define SRC_ROUTE_H_
 
 #include <stdint.h>
 #include <stddef.h>
 
-const char* getStopName (const uint32_t stop_id);
-uint32_t    getStopId   (const char*    stopName, const size_t stopNameLength);
-uint32_t    getStopId   (const char*    stopName);
+const char* get_stop_name (const uint32_t stopId);
+uint32_t    get_stop_id   (const char*    stopName, const size_t stopNameLength);
+uint32_t    get_stop_id   (const char*    stopName);
 
-#endif // ROUTE_H_
+#endif // SRC_ROUTE_H_

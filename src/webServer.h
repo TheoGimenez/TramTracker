@@ -1,5 +1,16 @@
-#ifndef WEBPAGE_H_
-#define WEBPAGE_H_
+/*
+ * File: /src/webServer.h
+ * Project: ESP32 TramTracker
+ * Created Date: 15-09-2026, 10:16:53 pm
+ * Author: Theo Gimenez
+ * -----
+ * Last Modified: Wednesday, October 7th 2026, 11:51:04 am
+ * Modified By: Theo Gimenez
+ * -----
+ */
+
+#ifndef SRC_WEBPAGE_H_
+#define SRC_WEBPAGE_H_
 
 #include <functional>
 
@@ -7,7 +18,9 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 
-const char INDEX_HTML[] PROGMEM = R"rawliteral(
+namespace web
+{
+    const char k_index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
 <html>
 <head>
@@ -43,24 +56,22 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
 </body>
 </html>
 )rawliteral";
-const char * const TRAM_SELECTOR_PARAM_INPUT = "tramline";
-
+    const char* const k_tram_selector_param_intput = "tramline";
+}
 
 class WebServer
 {
-    AsyncWebServer server;
+    AsyncWebServer                     m_server;
     std::function<void(const String&)> m_onUpdateCallback;
 
 public:
     WebServer(void);
-    ~WebServer() = default;
 public:
     void        begin           (std::function<void(const String&)> onUpdateCallback);
-
 private:
     static void _homePageHandler(AsyncWebServerRequest *request);
     void        _onUpdateHandler(AsyncWebServerRequest *request);
 
 };
 
-#endif /* WEBPAGE_H_ */
+#endif /* SRC_WEBPAGE_H_ */

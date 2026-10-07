@@ -4,7 +4,7 @@
  * Created Date: 06-10-2026, 2:36:09 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Wednesday, October 7th 2026, 10:11:59 am
+ * Last Modified: Wednesday, October 7th 2026, 11:23:31 am
  * Modified By: Theo Gimenez
  * -----
  */
@@ -29,31 +29,31 @@ struct FeedDecodeContext
     char    stopId[16];  // after finding stop that ad long id (9) `S_0:00215` set buffer to 16 from 8
     char    routeId[16]; // 
     int64_t nextArrival; // unix time from epoch (01/01/1970)
-public:
+
     FeedDecodeContext(const uint32_t _stopId, const uint32_t _routeId) :
         stopId{0},
         routeId{0},
         nextArrival{0}
     {
-        pbNbrToStr(_stopId, stopId, sizeof(stopId));
-        pbNbrToStr(_routeId, routeId, sizeof(routeId));
+        gtfs::pb_nbr_to_str(_stopId, stopId, sizeof(stopId));
+        gtfs::pb_nbr_to_str(_routeId, routeId, sizeof(routeId));
     }
 };
 
-struct StopTimeUpdateDecodeContext
+struct stop_time_update_decode_context
 {
     const char* stopId;
     int64_t earliestArrival;
 };
 
 static bool
-stopTimeUpdateCallback(pb_istream_t* stream, const pb_field_iter_t*, void** arg)
+stop_time_update_callback(pb_istream_t* stream, const pb_field_iter_t*, void** arg)
 {
-    StopTimeUpdateDecodeContext&               context    = *static_cast<StopTimeUpdateDecodeContext*>(*arg);
-    light_transit_rt_TripUpdate_StopTimeUpdate stopUpdate = light_transit_rt_TripUpdate_StopTimeUpdate_init_default;
+    stop_time_update_decode_context&           context     = *static_cast<stop_time_update_decode_context*>(*arg);
+    light_transit_rt_TripUpdate_StopTimeUpdate stop_update = light_transit_rt_TripUpdate_StopTimeUpdate_init_default;
     int64_t                                    arrival;
 
-    if (!pb_decode(stream, light_transit_rt_TripUpdate_StopTimeUpdate_fields, &stopUpdate))
+    if (!pb_decode(stream, light_transit_rt_TripUpdate_StopTimeUpdate_fields, &stop_update))
     {
         LOG_PRINTF("STOPTIMEUPDATE decode failed: %s, bytes_left=%u\n",
                    PB_GET_ERROR(stream),
@@ -61,19 +61,19 @@ stopTimeUpdateCallback(pb_istream_t* stream, const pb_field_iter_t*, void** arg)
         return false;
     }
     
-    if (!stopUpdate.has_stop_id || strcmp(stopUpdate.stop_id, context.stopId) != 0)
+    if (!stop_update.has_stop_id || strcmp(stop_update.stop_id, context.stopId) != 0)
     {
         return true;
     }
 
     arrival = 0;
-    if (stopUpdate.has_arrival && stopUpdate.arrival.has_time)
+    if (stop_update.has_arrival && stop_update.arrival.has_time)
     {
-        arrival = stopUpdate.arrival.time;
+        arrival = stop_update.arrival.time;
     }
-    else if (stopUpdate.has_departure && stopUpdate.departure.has_time)
+    else if (stop_update.has_departure && stop_update.departure.has_time)
     {
-        arrival = stopUpdate.departure.time;
+        arrival = stop_update.departure.time;
     }
 
     if (arrival > 0 &&
@@ -86,14 +86,14 @@ stopTimeUpdateCallback(pb_istream_t* stream, const pb_field_iter_t*, void** arg)
 }
 
 static bool
-tripUpdateEntityCallback(pb_istream_t* stream, const pb_field_iter_t*, void** arg)
+trip_update_entity_callback(pb_istream_t* stream, const pb_field_iter_t*, void** arg)
 {
-    FeedDecodeContext&          context           = *static_cast<FeedDecodeContext*>(*arg);
-    StopTimeUpdateDecodeContext stopUpdateContext = {context.stopId, 0};
-    light_transit_rt_FeedEntity entity            = light_transit_rt_FeedEntity_init_default;
+    FeedDecodeContext&              context             = *static_cast<FeedDecodeContext*>(*arg);
+    stop_time_update_decode_context stop_update_context = {context.stopId, 0};
+    light_transit_rt_FeedEntity     entity              = light_transit_rt_FeedEntity_init_default;
 
-    entity.trip_update.stop_time_update.funcs.decode = &stopTimeUpdateCallback;
-    entity.trip_update.stop_time_update.arg = &stopUpdateContext;
+    entity.trip_update.stop_time_update.funcs.decode = &stop_time_update_callback;
+    entity.trip_update.stop_time_update.arg          = &stop_update_context;
 
         if (!pb_decode(stream, light_transit_rt_FeedEntity_fields, &entity))
     {
@@ -108,32 +108,32 @@ tripUpdateEntityCallback(pb_istream_t* stream, const pb_field_iter_t*, void** ar
         return true;
     }
 
-    const auto& tripUpdate = entity.trip_update;
-    const auto& trip = tripUpdate.trip;
+    const auto& trip_update = entity.trip_update;
+    const auto& trip = trip_update.trip;
 
     if (!trip.has_route_id || strcmp(trip.route_id, context.routeId) != 0)
     {
         return true;
     }
     // Only merge after the route check; keep the earliest valid result across entities.
-    if (stopUpdateContext.earliestArrival > 0 &&
-        (context.nextArrival == 0 || stopUpdateContext.earliestArrival < context.nextArrival))
+    if (stop_update_context.earliestArrival > 0
+        && (context.nextArrival == 0 || stop_update_context.earliestArrival < context.nextArrival))
     {
-        context.nextArrival = stopUpdateContext.earliestArrival;
+        context.nextArrival = stop_update_context.earliestArrival;
     }
 
     return true;
 }
 
 std::optional<time_t>
-fetchNextTimeArrival(const uint32_t stopId, const uint32_t routeId)
+fetch_next_time_arrival(const uint32_t stopId, const uint32_t routeId)
 {
     assert((stopId != 0 && routeId != 0));
-    uint32_t content_length = 0;
-    FeedDecodeContext context{stopId, routeId};
-    std::optional<time_t> optional_return;
 
-    if (!openGTFSConnection())
+    uint32_t          content_length = 0;
+    FeedDecodeContext context        = {stopId, routeId};
+
+    if (!open_gtfs_connection())
     {
         LOG_PRINTLN("Cannot establish connection")
         return 0;
@@ -143,14 +143,14 @@ fetchNextTimeArrival(const uint32_t stopId, const uint32_t routeId)
         LOG_PRINTLN("Connection established")
     }
 
-    sendRequest(app::kGtfsTripUpdateEndpoint);
-    content_length = getContentLength();
+    send_request(app::k_gtfs_trip_update_endpoint);
+    content_length = get_content_length();
 
     if (content_length != 0)
     {
-        if (!parseGTFS(content_length, &tripUpdateEntityCallback, static_cast<void *>(&context)))
+        if (!gtfs::decode_feed(content_length, &trip_update_entity_callback, static_cast<void *>(&context)))
         {
-            closeGTFSConnection();
+            close_gtfs_connection();
             return std::nullopt;
         }
     }
@@ -160,7 +160,7 @@ fetchNextTimeArrival(const uint32_t stopId, const uint32_t routeId)
     }
 
     //
-    closeGTFSConnection();
+    close_gtfs_connection();
     //! return time_t(context.nextArrival - time::now());
     return std::optional<time_t>{context.nextArrival};
 }

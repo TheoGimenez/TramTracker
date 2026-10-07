@@ -7,8 +7,8 @@
  * Copyright (c) 2026 Your Company
  */
 
-#ifndef DISPLAY_CONTROLLER_HPP_
-#define DISPLAY_CONTROLLER_HPP_
+#ifndef SRC_DISPLAY_CONTROLLER_H_
+#define SRC_DISPLAY_CONTROLLER_H_
 
 #include <Arduino.h>
 #include <MD_Parola.h>
@@ -17,26 +17,36 @@
 
 // LED Matrix Conf
 namespace hardware {
-constexpr auto k_hardware_type = MD_MAX72XX::FC16_HW;
-constexpr uint8_t k_max_device =  4; // 8x8 matrix devices to use
-constexpr uint8_t k_data_pin   = 23; // ESP data pin (connect to DIN of matrix)
-constexpr uint8_t k_clk_pin    = 18; // ESP clock pin (connect to CLK oqf matrix)
-constexpr uint8_t k_cs_pin     =  5; // ESP chip select pin (connect to CS/LOAD of matrix)
-                                     // ESP input/output
+constexpr auto    k_hardware_type = MD_MAX72XX::FC16_HW;
+constexpr uint8_t k_max_device    =  4; // 8x8 matrix devices to use
+constexpr uint8_t k_data_pin      = 23; // ESP data pin (connect to DIN of matrix)
+constexpr uint8_t k_clk_pin       = 18; // ESP clock pin (connect to CLK oqf matrix)
+constexpr uint8_t k_cs_pin        =  5; // ESP chip select pin (connect to CS/LOAD of matrix)
+                                        // ESP input/output
 }
 class DisplayController
 {
+public:
+    enum RenderState
+    {
+        Default = 0,
+        TemporaryMessage = 1,
+        StaticMessage = 2,
+        render_state_count //* ncaca ot a usable buffer, only used to get number of buffer defined. Should always be the lastest item.
+    };
+
+private:
     enum BufferIndex
     {
         MAIN     = 0,
         TEMPORARY= 1,
         WRITABLE = 2,
-        index_count //* not a usable buffer, only used to get number of buffer defined. Should always be the lastest item.
+        buffer_index_count //* not a usable buffer, only used to get number of buffer defined. Should always be the lastest item.
     };
     using RenderHandler = void (DisplayController::*)(void);
 
     MD_Parola     m_renderer;
-    RenderHandler m_renderFunctions[BufferIndex::index_count];
+    RenderHandler m_renderFunctions[RenderState::render_state_count];
 
     //* multiple buffer array to avoid segment fault at read when a text is updated.
     //* the buffer at index BufferIndex::WRITABLE (2) is always the writable buffer, the buffer at index 1 is always the main text buffer, and the buffer at index 2 is always the temporary text buffer.
@@ -46,13 +56,6 @@ class DisplayController
     u_int8_t      m_state;
     u_int16_t     m_displayOccurrenceCountdown;
 
-public:
-    enum RenderState
-    {
-        Default = 0,
-        TemporaryMessage = 1,
-        StaticMessage = 2
-    };
 public:
     DisplayController(void);
     ~DisplayController() = default;
@@ -76,4 +79,4 @@ private:
     void _swapWritableBuffer (const BufferIndex bufferToSwap);
 };
 
-#endif //* DISPLAY_CONTROLLER_HPP_
+#endif //* SRC_DISPLAY_CONTROLLER_H_
