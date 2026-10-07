@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import os
 import shutil
@@ -18,6 +19,7 @@ PROJECT_DIR = Path(
 ).resolve()
 PROTO_DIRECTORY = PROJECT_DIR / "data" / "proto"
 OUTPUT_DIRECTORY = PROJECT_DIR / "lib" / "gtfs_rt_pb"
+FINGERPRINT_FILE = PROTO_DIRECTORY / ".nanopb-inputs.sha256"
 RED = "\033[31m"
 RESET = "\033[0m"
 
@@ -49,6 +51,20 @@ def required_outputs(proto_files: list[Path]) -> list[Path]:
     ]
 
 
+def input_fingerprint(
+    inputs: list[Path], protoc_version: str, protobuf_version: str
+) -> str:
+    """Hash the schemas and generator inputs that affect the generated sources."""
+    digest = hashlib.sha256()
+    digest.update(f"protoc:{protoc_version}\nprotobuf:{protobuf_version}\n".encode())
+    for input_file in sorted(set(inputs)):
+        digest.update(input_file.relative_to(PROJECT_DIR).as_posix().encode())
+        digest.update(b"\0")
+        digest.update(input_file.read_bytes())
+        digest.update(b"\0")
+    return digest.hexdigest()
+
+
 def main() -> None:
     proto_files = sorted(PROTO_DIRECTORY.glob("*.proto"))
     if not proto_files:
@@ -69,11 +85,41 @@ def main() -> None:
         warning("Nanopb generator dependency 'google.protobuf' is not installed")
         return
 
-    if shutil.which("protoc") is None:
+    protoc = shutil.which("protoc")
+    if protoc is None:
         warning("'protoc' is not installed or is not available in PATH")
         return
 
     nanopb_proto_directory = generator.parent / "proto"
+    try:
+        import google.protobuf
+
+        protoc_version = subprocess.run(
+            [protoc, "--version"], capture_output=True, text=True, check=True
+        ).stdout.strip()
+    except (ImportError, OSError, subprocess.CalledProcessError) as error:
+        warning(f"Unable to inspect protobuf generator versions: {error}")
+        return
+
+    proto_options = sorted(PROTO_DIRECTORY.glob("*.options"))
+    generator_inputs = sorted(generator.parent.glob("*.py"))
+    nanopb_proto_files = sorted(nanopb_proto_directory.glob("*.proto"))
+    inputs = [
+        *proto_files,
+        *proto_options,
+        Path(__file__).resolve(),
+        *generator_inputs,
+        *nanopb_proto_files,
+    ]
+    fingerprint = input_fingerprint(
+        inputs, protoc_version, google.protobuf.__version__
+    )
+    outputs = required_outputs(proto_files)
+    if all(output.exists() for output in outputs) and FINGERPRINT_FILE.exists():
+        if FINGERPRINT_FILE.read_text(encoding="ascii").strip() == fingerprint:
+            print("Nanopb outputs are up to date; skipping generation")
+            return
+
     command = [
         sys.executable,
         str(generator),
@@ -94,7 +140,12 @@ def main() -> None:
         warning(f"Nanopb generation failed: {error}")
         return
 
-    print(f"Generated {len(required_outputs(proto_files))} Nanopb files")
+    if not all(output.exists() for output in outputs):
+        warning("Nanopb generator did not produce all expected files")
+        return
+
+    FINGERPRINT_FILE.write_text(f"{fingerprint}\n", encoding="ascii")
+    print(f"Generated {len(outputs)} Nanopb files")
 
 
 if __name__ == "__main__":

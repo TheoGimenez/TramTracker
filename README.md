@@ -34,7 +34,8 @@ pio run -e debug
 On the first build, the PlatformIO pre-scripts automatically:
 
 1. Generate `include/generated_app_config.h` from `.env`.
-2. Generate Nanopb sources from `data/proto/*.proto` when outputs are missing.
+2. Generate Nanopb sources when their SHA-256 input fingerprint in
+	`data/proto/` changes or an expected output is missing.
 3. Download and extract the TAM static GTFS archive into `data/gtfs/` when
 	`data/gtfs/stop_times.txt` is missing.
 4. Generate `include/generated_stops.h` from `stop_times.txt` and `stops.txt`

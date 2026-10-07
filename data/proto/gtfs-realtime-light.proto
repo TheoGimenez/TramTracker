@@ -25,6 +25,17 @@ message FeedHeader {
   // Version of the feed specification.
   // The current version is 2.0.  Valid versions are "2.0", "1.0".
   required string gtfs_reatime_version = 1 [(nanopb).max_size = 8];
+  // Determines whether the current fetch is incremental.  Currently,
+  // DIFFERENTIAL mode is unsupported and behavior is unspecified for feeds
+  // that use this mode.  There are discussions on the GTFS Realtime mailing
+  // list around fully specifying the behavior of DIFFERENTIAL mode and the
+  // documentation will be updated when those discussions are finalized.
+  enum Incrementality {
+    FULL_DATASET = 0;
+    DIFFERENTIAL = 1;
+  }
+  optional Incrementality incrementality = 2 [default = FULL_DATASET];
+
   // This timestamp identifies the moment when the content of this feed has been
   // created (in server time). In POSIX time (i.e., number of seconds since
   // January 1st 1970 00:00:00 UTC).

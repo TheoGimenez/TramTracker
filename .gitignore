@@ -20,6 +20,8 @@ TODO
 generated_app_config.h
 generated_stops.h
 /lib/gtfs_rt_pb/
+# Local cache for generated Nanopb sources
+/data/proto/.nanopb-inputs.sha256
 // project specific files
 /data/gtfs/
 
