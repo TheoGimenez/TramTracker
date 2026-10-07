@@ -1,10 +1,12 @@
 /*
- * Filename: /home/theo/Documents/PlatformIO/Projects/TramTracker/src/DisplayController.cpp
- * Path: /home/theo/Documents/PlatformIO/Projects/TramTracker/src
+ * File: /src/DisplayController.cpp
+ * Project: ESP32 TramTracker
  * Created Date: Thursday, January 1st 1970, 1:00:00 am
  * Author: Theo Gimenez
- * 
- * Copyright (c) 2026 Your Company
+ * -----
+ * Last Modified: Wednesday, October 7th 2026, 12:06:33 pm
+ * Modified By: Theo Gimenez
+ * -----
  */
 
 #include "DisplayController.h"
