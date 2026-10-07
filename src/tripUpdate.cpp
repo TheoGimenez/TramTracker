@@ -4,7 +4,7 @@
  * Created Date: 06-10-2026, 2:36:09 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Wednesday, October 7th 2026, 11:23:31 am
+ * Last Modified: Wednesday, October 7th 2026, 12:30:47 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -26,24 +26,25 @@
 
 struct FeedDecodeContext
 {
-    char    stopId[16];  // after finding stop that ad long id (9) `S_0:00215` set buffer to 16 from 8
-    char    routeId[16]; // 
-    int64_t nextArrival; // unix time from epoch (01/01/1970)
+    char    stop_id[16];  // after finding stop that ad long id (9) `S_0:00215` set buffer to 16 from 8
+    char    route_id[16]; // 
+    int64_t next_arrival; // unix time from epoch (01/01/1970)
 
-    FeedDecodeContext(const uint32_t _stopId, const uint32_t _routeId) :
-        stopId{0},
-        routeId{0},
-        nextArrival{0}
+    FeedDecodeContext(const uint32_t stopId, const uint32_t routeId) :
+        stop_id{0},
+        route_id{0},
+        next_arrival{0}
     {
-        gtfs::pb_nbr_to_str(_stopId, stopId, sizeof(stopId));
-        gtfs::pb_nbr_to_str(_routeId, routeId, sizeof(routeId));
+        gtfs::pb_nbr_to_str(stopId, stop_id, sizeof(stop_id));
+        gtfs::pb_nbr_to_str(routeId, route_id, sizeof(route_id));
     }
 };
 
 struct stop_time_update_decode_context
 {
-    const char* stopId;
-    int64_t earliestArrival;
+    const char* stop_id;
+    // int64_t earliestArrival;
+    int64_t trip_delay; // mistake can be done here I think that stopTimeUpdate only give delay and not arrival/departure time
 };
 
 static bool
@@ -61,7 +62,7 @@ stop_time_update_callback(pb_istream_t* stream, const pb_field_iter_t*, void** a
         return false;
     }
     
-    if (!stop_update.has_stop_id || strcmp(stop_update.stop_id, context.stopId) != 0)
+    if (!stop_update.has_stop_id || strcmp(stop_update.stop_id, context.stop_id) != 0)
     {
         return true;
     }
@@ -76,10 +77,16 @@ stop_time_update_callback(pb_istream_t* stream, const pb_field_iter_t*, void** a
         arrival = stop_update.departure.time;
     }
 
+    //! OLD WRONG
+    // if (arrival > 0 && 
+    //     (context.earliestArrival == 0 || arrival < context.earliestArrival)) //! REPLACE BY TRIP DELAY
+    // {
+    //     context.earliestArrival = arrival;
+    // }
     if (arrival > 0 &&
-        (context.earliestArrival == 0 || arrival < context.earliestArrival))
+        (context.trip_delay == 0 || arrival < context.trip_delay)) //! REPLACE BY TRIP DELAY
     {
-        context.earliestArrival = arrival;
+        context.trip_delay = arrival;
     }
 
     return true;
@@ -89,7 +96,7 @@ static bool
 trip_update_entity_callback(pb_istream_t* stream, const pb_field_iter_t*, void** arg)
 {
     FeedDecodeContext&              context             = *static_cast<FeedDecodeContext*>(*arg);
-    stop_time_update_decode_context stop_update_context = {context.stopId, 0};
+    stop_time_update_decode_context stop_update_context = {context.stop_id, 0};
     light_transit_rt_FeedEntity     entity              = light_transit_rt_FeedEntity_init_default;
 
     entity.trip_update.stop_time_update.funcs.decode = &stop_time_update_callback;
@@ -111,16 +118,16 @@ trip_update_entity_callback(pb_istream_t* stream, const pb_field_iter_t*, void**
     const auto& trip_update = entity.trip_update;
     const auto& trip = trip_update.trip;
 
-    if (!trip.has_route_id || strcmp(trip.route_id, context.routeId) != 0)
+    if (!trip.has_route_id || strcmp(trip.route_id, context.route_id) != 0)
     {
         return true;
     }
     // Only merge after the route check; keep the earliest valid result across entities.
-    if (stop_update_context.earliestArrival > 0
-        && (context.nextArrival == 0 || stop_update_context.earliestArrival < context.nextArrival))
-    {
-        context.nextArrival = stop_update_context.earliestArrival;
-    }
+    //! if (stop_update_context.earliestArrival > 0
+    //!     && (context.next_arrival == 0 || stop_update_context.earliestArrival < context.next_arrival))
+    //! {
+    //!     context.next_arrival = stop_update_context.earliestArrival;
+    //! }
 
     return true;
 }
@@ -161,6 +168,6 @@ fetch_next_time_arrival(const uint32_t stopId, const uint32_t routeId)
 
     //
     close_gtfs_connection();
-    //! return time_t(context.nextArrival - time::now());
-    return std::optional<time_t>{context.nextArrival};
+    //! return time_t(context.next_arrival - time::now());
+    return std::optional<time_t>{context.next_arrival};
 }
