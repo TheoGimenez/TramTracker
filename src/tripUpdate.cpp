@@ -4,7 +4,7 @@
  * Created Date: 06-10-2026, 2:36:09 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 6th 2026, 9:19:53 pm
+ * Last Modified: Wednesday, October 7th 2026, 10:11:59 am
  * Modified By: Theo Gimenez
  * -----
  */
@@ -13,6 +13,7 @@
 //
 #include <assert.h>
 #include <cstdint>
+#include <optional>
 //
 #include <pb.h>
 #include <pb_decode.h>
@@ -68,15 +69,12 @@ stopTimeUpdateCallback(pb_istream_t* stream, const pb_field_iter_t*, void** arg)
     arrival = 0;
     if (stopUpdate.has_arrival && stopUpdate.arrival.has_time)
     {
-// LOG_PRINTF("stopid (%s) -> next (%u)\n",stopUpdate.stop_id, stopUpdate.arrival.time)
         arrival = stopUpdate.arrival.time;
     }
     else if (stopUpdate.has_departure && stopUpdate.departure.has_time)
     {
-// LOG_PRINTF("stopid (%s) -> next (%u)\n",stopUpdate.stop_id, stopUpdate.departure.time)
         arrival = stopUpdate.departure.time;
     }
-// else {LOG_PRINTF("NOTHIN (%d) (%d) (%d) (%d)\n",stopUpdate.has_arrival, stopUpdate.arrival.has_time, stopUpdate.has_departure, stopUpdate.departure.has_time)}
 
     if (arrival > 0 &&
         (context.earliestArrival == 0 || arrival < context.earliestArrival))
@@ -97,8 +95,7 @@ tripUpdateEntityCallback(pb_istream_t* stream, const pb_field_iter_t*, void** ar
     entity.trip_update.stop_time_update.funcs.decode = &stopTimeUpdateCallback;
     entity.trip_update.stop_time_update.arg = &stopUpdateContext;
 
-    
-    if (!pb_decode(stream, light_transit_rt_FeedEntity_fields, &entity))
+        if (!pb_decode(stream, light_transit_rt_FeedEntity_fields, &entity))
     {
         LOG_PRINTF("Entity decode failed: %s, bytes_left=%u\n",
                    PB_GET_ERROR(stream),
@@ -113,19 +110,11 @@ tripUpdateEntityCallback(pb_istream_t* stream, const pb_field_iter_t*, void** ar
 
     const auto& tripUpdate = entity.trip_update;
     const auto& trip = tripUpdate.trip;
-///
-LOG_PRINTF("stop=%s route=%s expected=%s earliest=%lld next=%lld\n",
-           stopUpdateContext.stopId,
-           trip.has_route_id ? trip.route_id : "<absent>",
-           context.routeId,
-           static_cast<long long>(stopUpdateContext.earliestArrival),
-           static_cast<long long>(context.nextArrival))
-///
+
     if (!trip.has_route_id || strcmp(trip.route_id, context.routeId) != 0)
     {
         return true;
     }
-// LOG_PRINTF("earliestArrival (%u) -> next (%u)\n",stopUpdateContext.earliestArrival, context.nextArrival)
     // Only merge after the route check; keep the earliest valid result across entities.
     if (stopUpdateContext.earliestArrival > 0 &&
         (context.nextArrival == 0 || stopUpdateContext.earliestArrival < context.nextArrival))
@@ -136,18 +125,21 @@ LOG_PRINTF("stop=%s route=%s expected=%s earliest=%lld next=%lld\n",
     return true;
 }
 
-time_t
+std::optional<time_t>
 fetchNextTimeArrival(const uint32_t stopId, const uint32_t routeId)
 {
     assert((stopId != 0 && routeId != 0));
     uint32_t content_length = 0;
     FeedDecodeContext context{stopId, routeId};
+    std::optional<time_t> optional_return;
 
     if (!openGTFSConnection())
     {
         LOG_PRINTLN("Cannot establish connection")
         return 0;
-    } else {
+    }
+    else
+    {
         LOG_PRINTLN("Connection established")
     }
 
@@ -156,7 +148,11 @@ fetchNextTimeArrival(const uint32_t stopId, const uint32_t routeId)
 
     if (content_length != 0)
     {
-        parseGTFS(content_length, &tripUpdateEntityCallback, static_cast<void*>(&context));
+        if (!parseGTFS(content_length, &tripUpdateEntityCallback, static_cast<void *>(&context)))
+        {
+            closeGTFSConnection();
+            return std::nullopt;
+        }
     }
     else
     {
@@ -166,5 +162,5 @@ fetchNextTimeArrival(const uint32_t stopId, const uint32_t routeId)
     //
     closeGTFSConnection();
     //! return time_t(context.nextArrival - time::now());
-    return context.nextArrival;
+    return std::optional<time_t>{context.nextArrival};
 }

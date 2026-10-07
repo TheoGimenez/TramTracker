@@ -4,7 +4,7 @@
  * Created Date: 06-10-2026, 2:37:14 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 6th 2026, 3:37:20 pm
+ * Last Modified: Wednesday, October 7th 2026, 10:06:06 am
  * Modified By: Theo Gimenez
  * -----
  */
@@ -13,8 +13,9 @@
 #define TRIP_UPDATE_H_
 
 #include <cstdint>
+#include <optional>
 #include <esp_sntp.h>
 
-time_t fetchNextTimeArrival(const uint32_t stopId, const uint32_t routeId);
+std::optional<time_t> fetchNextTimeArrival(const uint32_t stopId, const uint32_t routeId);
 
 #endif // TRIP_UPDATE_H_

@@ -8,7 +8,6 @@
  */
 
 #include <Arduino.h>
-#include <esp_timer.h> //! FOR DEBUG
 #include <esp_sntp.h> // use of time_t
 #include <MD_Parola.h>
 #include <MD_MAX72xx.h>
@@ -92,11 +91,20 @@ void setup()
     //
     //* Setup protobuff
     // first call
-    time_t nextArrival = fetchNextTimeArrival(app::selectedStop.id, app::selectedStop.routeId);
+    // time_t nextArrival =
+    auto nextArrival = fetchNextTimeArrival(app::selectedStop.id, app::selectedStop.routeId);
+    if (nextArrival.has_value())
+    {
+        LOG_PRINT("NEXT ARRIVAL=")
+        LOG_PRINTLN(nextArrival.value())
+    }
+    else
+    {
+        LOG_PRINTLN("no parsing")
+    }
     // String time((nexArrival - now()) * 1000 / 60); 
     // app::display.setMainText(app::selectedStop.fullName + String(" dans " + time + "min"));
-    LOG_PRINTLN("NEXT ARRIVAL=")
-    LOG_PRINTLN(nextArrival)
+    
 }
 
 void loop()
