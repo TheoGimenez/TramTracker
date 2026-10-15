@@ -72,18 +72,10 @@ stop_time_update_decoder(pb_istream_t* stream, const pb_field_iter_t*, void** ar
     if (stop_update.has_arrival && stop_update.arrival.has_time)
     {
         arrival = stop_update.arrival.time - context.feed.now;
-        if (stop_update.arrival.has_delay)
-        {
-            arrival += stop_update.arrival.delay;
-        }
     }
     else if (stop_update.has_departure && stop_update.departure.has_time)
     {
         arrival = stop_update.departure.time - context.feed.now;
-        if (stop_update.departure.has_delay)
-        {
-            arrival += stop_update.departure.delay;
-        }
     }
 
     if (arrival > 0 && (context.remaining_seconds == 0 || arrival < context.remaining_seconds))
