@@ -4,16 +4,18 @@
  * Created Date: Thursday, January 1st 1970, 1:00:00 am
  * Author: Theo Gimenez
  * -----
- * Last Modified: Wednesday, October 7th 2026, 12:07:07 pm
+ * Last Modified: Thursday, October 15th 2026, 2:04:59 am
  * Modified By: Theo Gimenez
  * -----
  */
 
 #include <Arduino.h>
+#include <chrono>
 #include <esp_sntp.h> // use of time_t
 #include <MD_Parola.h>
 #include <MD_MAX72xx.h>
 #include <SPI.h>
+#include <time.h>
 #include <WiFi.h>
 //
 #include "DisplayController.h"
@@ -24,35 +26,42 @@
 #include "tripUpdate.h"
 #include "utils.h"
 #include "WebServer.h"
+#include "default_config.h"
 
 namespace hardware
 {
     constexpr uint8_t k_esp_led = 2;     // esp integrated blue led
     constexpr uint8_t k_boot_button = 0; // esp boot button
 } // namespace hardware
-
+namespace
+{	
+#   define TZ_Europe_Paris PSTR("CET-1CEST,M3.5.0,M10.5.0/3")
+    // const char*     ntp_timezone        = TZ_Europe_Paris "CET-1CEST,M3.5.0,M10.5.0/3";
+    const char*     ntp_server          = "pool.ntp.org";
+    constexpr long  gmt_offset_sec      = 3600;
+    constexpr int   daylight_offset_sec = 3600;
+}
 //
 namespace app
 {
     DisplayController display;   // LED Matrix Controller
     WebServer         webserver; // Webserver to control the display
-    
-    // anonym struct that only used here
-    struct
-    {
-        uint32_t    id                   = 0;
-        uint32_t    route_id             = 0;
-        time_t      next_arrival_time[2] = {0}; // next arrival time for the 2 direction (0 or 1)
-        char* const fullName             = nullptr;
-    } selectedStop;
+    // Selected Stop that default value set in include/default_config.h
+    selected_stop_s   selected_stop = {{0}, TRAM_TRACKER_DEFAULT_ROUTE_NAME, TRAM_TRACKER_DEFAULT_STOP_NAME};
 }
 
-// void set_selected_stop(const uint16_t stopId, const uint16_t routeId) //!prototype
-// {
-    // app::context.selectedStop.id       = stopId;
-    // app::context.selectedStop.route_id = routeId;
-    // app::context.selectedStop.fullName = get_stop_name(stopId);
-// }
+time_t getTime()
+{
+    time_t    now;
+    struct tm time_info;
+    
+    if (!getLocalTime(&time_info))
+    {
+        return 0;
+    }
+    time(&now);
+    return now;
+}
 
 void setup()
 {
@@ -62,10 +71,10 @@ void setup()
     pinMode(hardware::k_esp_led, OUTPUT);
     pinMode(hardware::k_boot_button, INPUT_PULLDOWN);
     //
-    //* Setup display
+    //* Init display
     app::display.begin();
     //
-    //* Setup wifi
+    //* Init wifi
     WiFi.mode(WIFI_STA);
     WiFi.begin(app::k_wifi_ssid, app::k_wifi_password);
     WiFi.setAutoReconnect(true);
@@ -77,36 +86,43 @@ void setup()
         delay(100);
     }
     app::display.setTemporaryText(WiFi.localIP().toString());
-    //
-    //* Setup webserver
+    //* sync time:
+    configTzTime(TZ_Europe_Paris, ntp_server);
+
+    //* Init webserver
     app::webserver.begin([](String selectedLine)
                          {
         app::display.setMainText(selectedLine);
         app::display.setDisplayToMainText();
     });
     //
-    //* Setup network client
+    //* Init network client
     initialize_network();
-    //* Setup selected stop
-    app::selectedStop.id = get_stop_id("Place Carnot"); // place carnot
-    app::selectedStop.route_id = 3; // Ligne 3
+
+    //* Init selected stop (debug purpose)
+    set_stop_ids(app::selected_stop);
+    set_stop_name(app::selected_stop);
+
     //
-    //* Setup protobuff
-    // first call
-    // time_t nextArrival =
-    auto next_arrival = fetch_next_time_arrival(app::selectedStop.id, app::selectedStop.route_id);
-    if (next_arrival.has_value())
+    //* Init protobuff
+    const auto next_arrivals = fetch_next_time_arrival(app::selected_stop.route, app::selected_stop.ids, getTime());
+
+    if (next_arrivals.has_value())
     {
-        LOG_PRINT("NEXT ARRIVAL=")
-        LOG_PRINTLN(next_arrival.value())
+        LOG_PRINT("NEXT ARRIVAL=[")
+        LOG_PRINT(next_arrivals.value().next_arrival_times[0])
+        LOG_PRINT("], [")
+        LOG_PRINT(next_arrivals.value().next_arrival_times[1])
+        LOG_PRINTLN("]")
     }
     else
     {
         LOG_PRINTLN("no parsing")
     }
-    // String time((nexArrival - now()) * 1000 / 60); 
-    // app::display.setMainText(app::selectedStop.fullName + String(" dans " + time + "min"));
+
     
+    // app::display.setMainText("Aucun stop selectionner : connectez vous sur " String(WiFi.localIP().toString()));
+    // app::display.setDisplayToMainText(true, 0);
 }
 
 void loop()
