@@ -4,7 +4,7 @@
  * Created Date: 06-10-2026, 2:37:14 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Wednesday, October 7th 2026, 11:51:11 am
+ * Last Modified: Monday, October 12th 2026, 6:56:01 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -13,9 +13,12 @@
 #define SRC_TRIP_UPDATE_H_
 
 #include <cstdint>
-#include <optional>
 #include <esp_sntp.h>
+#include <optional>
+#include <time.h>
+//
+#include "stopUtils.h"
 
-std::optional<time_t> fetch_next_time_arrival(const uint32_t stopId, const uint32_t routeId);
+std::optional<next_arrival_s> fetch_next_time_arrival(const char* route, const uint32_t stopIds[2], const time_t now);
 
 #endif // SRC_TRIP_UPDATE_H_
