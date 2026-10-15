@@ -11,19 +11,19 @@ valgrind-out.txt
 .venv/
 .env
 __pycache__
-.TODO
+/.coding-style.md
 
 // macos
 .DS_Store
 
-// project generated files
+# project generated files
 generated_app_config.h
 generated_stops.h
 /lib/gtfs_rt_pb/
 # Local cache for generated Nanopb sources
 /data/proto/.nanopb-inputs.sha256
-// project specific files
+# project specific files
 /data/gtfs/
-
-
-.ignored_files/
+# 
+.ignored-files/
+.experimental-logics/
