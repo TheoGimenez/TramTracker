@@ -145,7 +145,7 @@ message TripUpdate {
     // Must be the same as in stop_times.txt in the corresponding GTFS feed.
     optional uint32 stop_sequence = 1;
     // Must be the same as in stops.txt in the corresponding GTFS feed.
-    optional string stop_id = 4 [(nanopb).max_size = 16];
+    optional string stop_id = 4 [(nanopb).max_size = 12];
 
     optional StopTimeEvent arrival = 2;
     optional StopTimeEvent departure = 3;
@@ -288,9 +288,8 @@ message Vehicle {
 }
 
 message TripDescriptor {
-  optional string trip_id = 1 [(nanopb).max_size = 64];
-  // limit route_id size on 4 bytes (so theorical max value is = '999')
-  optional string route_id = 5 [(nanopb).max_size = 4];
+  optional string trip_id = 1 [(nanopb).max_size = 24];
+  optional string route_id = 5 [(nanopb).max_size = 12];
   optional uint32 direction_id = 6;
   // stored as 06:43:00 by TAM
   // The initially scheduled start time of this trip instance.
