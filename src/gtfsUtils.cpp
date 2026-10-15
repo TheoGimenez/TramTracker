@@ -4,7 +4,7 @@
  * Created Date: 02-10-2026, 2:41:49 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Wednesday, October 7th 2026, 10:55:30 am
+ * Last Modified: Thursday, October 15th 2026, 2:01:07 am
  * Modified By: Theo Gimenez
  * -----
  */
@@ -25,7 +25,7 @@
 char*
 gtfs::pb_nbr_to_str(const uint32_t id, char* dest, const size_t capacity)
 {
-    assert((dest != nullptr && (dest[capacity-1] == 0 || dest[capacity-1] != 0)));
+    assert((dest != nullptr && (dest[capacity - 1] == 0 || dest[capacity - 1] != 0)));
 
     // doesn't test if dest a the right size, that the responsability of the fct user.
     const uint32_t written = snprintf(dest, capacity, "%" PRIu32, id);
