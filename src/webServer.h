@@ -4,74 +4,58 @@
  * Created Date: 15-09-2026, 10:16:53 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Wednesday, October 7th 2026, 12:02:12 pm
+ * Last Modified: Sunday, October 18th 2026, 6:10:34 pm
  * Modified By: Theo Gimenez
  * -----
  */
 
-#ifndef SRC_WEBPAGE_H_
-#define SRC_WEBPAGE_H_
+#ifndef SRC_WEB_SERVER_H_
+#define SRC_WEB_SERVER_H_
 
 #include <functional>
-
+//
 #include <Arduino.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+//
+#include "stopSelection.html.h"
 
 namespace web
 {
-    const char k_index_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>TramTraker</title>
-    <style>
-        body{font-family: Arial, sans-serif; text-align: center;}
-        input, select, button {font-size: 16px; margin: 10px; padding: 8px;}
-    </style>
-</head>
-<body>
-    <h2>Tram Tracker</h2>
-    <label for="tramLine">Selectionner Arret:</label><br>
-    <select class="tramLine" onchange="selectLine(this.value)">
-        <option value="" disabled>-- Choisir une ligne --</option>
-        <option value="1">T1 - Mosson <-> Gare Sud de France</option>
-        <option value="2">T2 - St-Jean de Védas Centre <-> Jacou</option>
-        <option value="3" selected>T3 - Juvignac <-> Lattes / Pérols</option>
-        <option value="4">T4 - Garcia Lorca <-> Garcia Lorca</option>
-        <option value="5">T5 - Clapiers <-> Grès de Montpellier</option>
-    </select>
-    <script>
-        function selectLine(line) {
-            var xhr = new XMLHttpRequest();
-            if (line) {
-                xhr.open("GET","/update?tramline="+line,true);
-            } else {
-                xhr.open("GET","/update?tramline=null",true);
-            }
-            xhr.send();
-        }
-    </script>
-</body>
-</html>
-)rawliteral";
-    const char* const k_tram_selector_param_intput = "tramline";
-}
+    // inline constexpr const char* k_stop_selection_html = /include/stopSelection.html.h;
+    inline constexpr const char* k_wifi_html = nullptr;
+    inline constexpr const char* k_route_param_intput = "route";
+    inline constexpr const char* k_stop_param_input = "stop";
+} // namespace web
 
 class WebServer
 {
-    AsyncWebServer                     m_server;
-    std::function<void(const String&)> m_onUpdateCallback;
+    using Callback = std::function<void(const String&, const String&)>;
+
+    enum PageRenderer {
+        WIFI_CONFIG,
+        STOP_CONFIG
+    };
+
+    AsyncWebServer m_server;
+    PageRenderer   m_pageToRender;
+    Callback       m_onUpdateCallback;
 
 public:
-    WebServer(void);
+        WebServer(void);
 public:
-    void        begin           (std::function<void(const String&)> onUpdateCallback);
+    void begin                  (Callback           onUpdateCallback);
+
+    void setHomePageToWifiConfig    (void);
+    void setHomePageToStopSelection(void);
 private:
-    static void _homePageHandler(AsyncWebServerRequest *request);
-    void        _onUpdateHandler(AsyncWebServerRequest *request);
+    void _homePageHandler       (AsyncWebServerRequest* request);
+    void _onSelectHandler       (AsyncWebServerRequest* request);
+    void _onStopHandler         (AsyncWebServerRequest* request);
+
+    void _routeSelectorCallback (AsyncWebServerRequest* request);
+    void _wifiConfigCallback    (AsyncWebServerRequest* request);
 
 };
 
-#endif /* SRC_WEBPAGE_H_ */
+#endif /* SRC_WEB_SERVER_H_ */

@@ -4,7 +4,7 @@
  * File Created: Wednesday, 30th September 2026 9:23:44, pm
  * Author: Nathan Fain
  * -----
- * Last Modified: Thursday, October 15th 2026, 2:13:23 am
+ * Last Modified: Sunday, October 18th 2026, 2:41:00 am
  * Modified By: Theo Gimenez
  * -----
  * Description: 
@@ -17,6 +17,10 @@
 #include <optional>
 #include <stdio.h>
 #include <stdint.h>
+#include <set>
+#include <vector>
+//
+#include <Arduino.h>
 //
 #include "generated_stops.h"
 
@@ -26,7 +30,6 @@ same_string(const char* lhv, const char* rhv)
 {
     return (strcmp(lhv, rhv) == 0);
 }
-
 
 void
 set_selected_stop(selected_stop_s& selectedStop, const char* route, const char* stopName)
@@ -94,7 +97,7 @@ get_stop_name(const uint32_t stopId)
 }
 
 std::array<uint32_t, 2>
-get_stop_id(const char* route, const char* stopName)
+get_stop_ids(const char* route, const char* stopName)
 {
     std::array<uint32_t, 2> ids             = {0, 0};
     uint8_t                 direction_found = 0;
@@ -120,9 +123,9 @@ get_stop_id(const char* route, const char* stopName)
 }
 
 std::array<uint32_t, 2>
-get_stop_id(const uint8_t routeIndex, const char* stopName)
+get_stop_ids(const uint8_t routeIndex, const char* stopName)
 {
-    return get_stop_id(gtfs::k_routes[routeIndex].name(), stopName);
+    return get_stop_ids(gtfs::k_routes[routeIndex].name(), stopName);
 }
 
 // Resolve the user-selected route and stop name into the two TAM direction-specific stop IDs.
@@ -136,7 +139,7 @@ bool resolve_selected_stop(const char *routeShortName, const char *stopName, sel
         // const gtfs::Route& route = gtfs::k_routes[route_index];
         const char *route_name = gtfs::k_routes[route_index].name();
 
-        if (same_string(route_name, routeShortName) == false)
+        if (same_string(route_name, routeShortName))
         {
             stopToResolve.route = route_name;
             break;
@@ -157,7 +160,7 @@ bool resolve_selected_stop(const char *routeShortName, const char *stopName, sel
         const gtfs::Stop &stop = gtfs::k_stops[link.stop_index];
         const char *candidate_stop_name = stop.name();
 
-        if (std::strcmp(candidate_stop_name, stopName) == 0)
+        if (same_string(candidate_stop_name, stopName))
         {
 
             stopToResolve.name = candidate_stop_name;
@@ -177,4 +180,67 @@ bool resolve_selected_stop(const char *routeShortName, const char *stopName, sel
     }
 
     return false;
+}
+
+std::vector<String>
+get_routes_list(void)
+{
+    std::vector<String> routes;
+
+    routes.reserve(gtfs::k_route_count);
+    // beggin index to 1, 0 is reserved for "unknown"
+    for (size_t i = 1; i < gtfs::k_route_count; ++i)
+    {
+        routes.push_back(String(gtfs::k_routes[i].name()));
+    }
+
+    return routes;
+}
+
+// bool
+// is_existing_route(const String& route)
+// {
+//     for (size_t i = 0; i < gtfs::k_route_count; ++i)
+//     {
+//         if (route.equals(gtfs::k_routes[i].name()))
+//         {
+//             return true;
+//         }
+//     }
+//     return false;
+// }
+
+uint8_t get_route_idx(const String& route)
+{
+    size_t idx = gtfs::k_route_count;
+
+    do
+    {
+        --idx;
+        if (route.equals(gtfs::k_routes[idx].name()))
+        {
+            break;
+        }
+    } while (idx >= 0);
+
+    return idx;
+}
+
+std::set<String> get_stops_list_from_route(const uint8_t route_idx)
+{
+    std::set<String> stops;
+
+
+    for (size_t i = 0; i < gtfs::k_stop_route_count; ++i)
+    {
+        const auto& link = gtfs::k_stop_routes[i];
+    
+        if (link.route_index != route_idx)
+        {
+            continue;
+        }
+        
+        stops.insert(gtfs::k_stops[link.stop_index].name());
+    }
+    return stops;
 }
