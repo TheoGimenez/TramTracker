@@ -238,8 +238,8 @@ def generate_header(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("w", encoding="utf-8", newline="\n") as output:
         output.write("#pragma once\n\n")
-        output.write("#include <stddef.h>\n")
-        output.write("#include <stdint.h>\n\n")
+        output.write("#include <cstddef>\n")
+        output.write("#include <cstdint>\n\n")
         output.write("namespace gtfs {\n\n")
         output.write("// One unique numeric stop and its offset in the shared stop-name pool.\n")
         output.write("struct Stop {\n")

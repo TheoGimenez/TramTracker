@@ -48,7 +48,7 @@ def render_header(values: dict[str, str]) -> str:
         "",
         "#include <stdint.h>",
         "",
-        "namespace app {",
+        "namespace env {",
         f"constexpr const char* k_wifi_ssid = \"{wifi_ssid}\";",
         f"constexpr const char* k_wifi_password = \"{wifi_password}\";",
         f"constexpr uint16_t    k_web_server_port = {int(webserver_port)};",
