@@ -1,39 +1,35 @@
 /*
- * File: /src/networkUtils.cpp
+ * File: /src/realtime/rtHttpClient.cpp
  * Project: ESP32 TramTracker
- * Created Date: 17-09-2026, 3:46:21 pm
+ * Created Date: 19-10-2026, 9:27:23 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Wednesday, October 7th 2026, 11:49:13 am
+ * Last Modified: Monday, October 19th 2026, 11:40:30 pm
  * Modified By: Theo Gimenez
  * -----
  */
 
-#include "networkUtils.h"
-//
-#include "utils.h"
-#include <WiFiClientSecure.h>
-//
-#include "generated_app_config.h"
 
-namespace app
+#include "rtHttpClient.h"
+
+namespace rt
 {
     static WiFiClientSecure client;
 }
 
 void
-initialize_network(void)
+rt::initialize_network(void)
 {
-    app::client.setInsecure();
-    app::client.setTimeout(5); // 5s timeout
+    rt::client.setInsecure();
+    rt::client.setTimeout(5); // 5s timeout
 }
 
 int
-open_gtfs_connection(void)
+rt::open_gtfs_connection(void)
 {
-    app::client.stop();
+    rt::client.stop();
 
-    int ok = app::client.connect(app::k_gtfs_base_url, app::k_gtfs_port);
+    int ok = rt::client.connect(env::k_gtfs_base_url, env::k_gtfs_port);
     if (!ok)
     {
         LOG_PRINTLN("Failed to connect")
@@ -43,35 +39,35 @@ open_gtfs_connection(void)
 }
 
 void
-close_gtfs_connection(void)
+rt::close_gtfs_connection(void)
 {
-    app::client.stop();
+    rt::client.stop();
 }
 
 void
-send_request(const char *endpoint)
+rt::send_request(const char *endpoint)
 {
-    app::client.print(F("GET "));
-    app::client.print(endpoint);
-    app::client.println(F(" HTTP/1.1"));
-    app::client.print(F("Host: "));
-    app::client.println(app::k_gtfs_base_url);
-    app::client.println(F("Accept: application/octet-stream"));
-    app::client.println(F("Connection: close"));
-    app::client.println();
+    rt::client.print(F("GET "));
+    rt::client.print(endpoint);
+    rt::client.println(F(" HTTP/1.1"));
+    rt::client.print(F("Host: "));
+    rt::client.println(env::k_gtfs_base_url);
+    rt::client.println(F("Accept: application/octet-stream"));
+    rt::client.println(F("Connection: close"));
+    rt::client.println();
 }
 
 uint32_t 
-get_content_length(void)
+rt::get_content_length(void)
 {
     const uint32_t deadline       = millis() + 5000;
     uint32_t       content_length = 0;
 
     while (millis() < deadline)
     {
-        if (!app::client.available())
+        if (!rt::client.available())
         {
-            if (!app::client.connected())
+            if (!rt::client.connected())
             {
                 LOG_PRINTLN("Connection closed before HTTP headers")
                 return content_length;
@@ -80,7 +76,7 @@ get_content_length(void)
             continue;
         }
 
-        String line = app::client.readStringUntil('\n');
+        String line = rt::client.readStringUntil('\n');
 
         if (line == "\r") // header done
         {
@@ -98,7 +94,7 @@ get_content_length(void)
 }
 
 bool
-read_response_bytes(uint8_t* buffer, size_t count)
+rt::read_response_bytes(uint8_t* buffer, size_t count)
 {
     const uint32_t timeout    = millis() + 5000;
     size_t         total_read = 0;
@@ -110,9 +106,9 @@ read_response_bytes(uint8_t* buffer, size_t count)
             return false;
         }
 
-        if (app::client.available())
+        if (rt::client.available())
         {
-            int32_t byte_read = app::client.read(buffer + total_read, count - total_read);
+            int32_t byte_read = rt::client.read(buffer + total_read, count - total_read);
 
             if (byte_read < 0)
             {
@@ -120,7 +116,7 @@ read_response_bytes(uint8_t* buffer, size_t count)
             }
             total_read += size_t(byte_read);
         }
-        else if (!app::client.connected())
+        else if (!rt::client.connected())
         {
             // brutal disconnection.
             return false;
