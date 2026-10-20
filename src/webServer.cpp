@@ -4,66 +4,55 @@
  * Created Date: 15-09-2026, 10:16:53 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Sunday, October 18th 2026, 5:45:21 pm
+ * Last Modified: Tuesday, October 20th 2026, 2:00:06 am
  * Modified By: Theo Gimenez
  * -----
  */
 
 #include "WebServer.h"
-//
-#include <set>
-//
-#include <Arduino.h>
-#include <cJSON.h>
-#include <esp_log.h>
-//
-#include "generated_app_config.h"
-#include "stopUtils.h"
-#include "utils.h"
 
-WebServer::WebServer(void) : m_server{app::k_web_server_port}, m_pageToRender{PageRenderer::STOP_CONFIG}
+WebServer::WebServer(void) : m_server{env::k_web_server_port}, m_pageToRender{DefaultHomePage::SELECT_STOP_PAGE}
 {}
 
 void
-WebServer::begin(std::function<void(const String &, const String&)> callback)
+WebServer::begin(Callback callback)
 {
     m_onUpdateCallback = callback;
 
-    m_server.on("/", HTTP_GET, [this](auto *r){ _homePageHandler(r); });
-    
-    m_server.on("/stops", HTTP_GET, [this](auto *r){ _onStopHandler(r); });
-    m_server.on("/select", HTTP_POST, [this](auto *r){ _onSelectHandler(r); });
+    m_server.on("/",       HTTP_GET,  [this](auto*r ){ _homePageHandler(r); });
+    m_server.on("/stops",  HTTP_GET,  [this](auto*r ){ _onStopHandler(r); });
+    m_server.on("/select", HTTP_POST, [this](auto*r ){ _onSelectHandler(r); });
 
-    // start server
     m_server.begin();
 }
 
-void
-WebServer::setHomePageToWifiConfig(void)
-{
-    m_pageToRender = PageRenderer::WIFI_CONFIG;
-}
 
 void
-WebServer::setHomePageToStopSelection(void)
+WebServer::setHomePage(const DefaultHomePage p, Callback callback)
 {
-    m_pageToRender = PageRenderer::STOP_CONFIG;
+    m_pageToRender     = p;
+    m_onUpdateCallback = callback;
 }
 
 // private
 static String
-stop_selector_process_template(const String &var)
-{Serial.printf("Template demandé : [%s]\n", var.c_str());
+stop_selector_process_template(const String& var)
+{
     if (var == "ROUTES")
     {
         String options("");
-        const auto &routes = get_routes_list();
-        for (const String &route : routes)
-        {
-            options += "<option value=\"" + route + "\">";
-            options += route;
-            options += "</option>\n";
-        }
+
+        transit::forEachOrderedRouteName([](const char* route, void* options)->bool {
+            auto& opt = *static_cast<String*>(options);
+
+            opt.concat("<option value=\"");
+            opt.concat(route);
+            opt.concat("\">");
+            opt.concat(route);
+            opt.concat("</option>\n");
+
+            return false;
+        }, &options);
 
         return options;
     }
@@ -74,11 +63,11 @@ stop_selector_process_template(const String &var)
 void
 WebServer::_homePageHandler(AsyncWebServerRequest* request)
 {
-    if (m_pageToRender == PageRenderer::STOP_CONFIG)
+    if (m_pageToRender == DefaultHomePage::SELECT_STOP_PAGE)
     {
         return request->send(200, "text/html", web::k_stop_selection_html, &stop_selector_process_template);
     }
-    else // m_pageToRender == PageRenderer::WIFI_CONFIG
+    else // m_pageToRender == DefaultHomePage::SET_WIFI_PAGE
     {
         // return request->send(200, "text/html", web::k_wifi_html);
     }
@@ -87,11 +76,11 @@ WebServer::_homePageHandler(AsyncWebServerRequest* request)
 void
 WebServer::_onSelectHandler(AsyncWebServerRequest* request)
 {
-    if (m_pageToRender == PageRenderer::STOP_CONFIG)
+    if (m_pageToRender == DefaultHomePage::SELECT_STOP_PAGE)
     {
         _routeSelectorCallback(request);
     }
-    else // m_pageToRender == PageRenderer::WIFI_CONFIG
+    else // m_pageToRender == DefaultHomePage::SET_WIFI_PAGE
     {
         _wifiConfigCallback(request);
     }
@@ -99,14 +88,14 @@ WebServer::_onSelectHandler(AsyncWebServerRequest* request)
 
 void WebServer::_onStopHandler(AsyncWebServerRequest *request)
 {
-    if (request->hasParam(web::k_route_param_intput))
+    if (request->hasParam(web::k_route_param_input))
     {
-        String selected_route = request->getParam(web::k_route_param_intput)->value();
+        String     selected_route = request->getParam(web::k_route_param_input)->value();
+        const auto route_idx      = transit::get_route_idx(selected_route);
 
-        const auto route_idx = get_route_idx(selected_route);
         if (route_idx) // route idx 0 is for unknown
         {
-            std::set<String> stops = get_stops_list_from_route(route_idx);
+            std::set<String> stops = transit::get_stops_list(route_idx);
 
             if (stops.size())
             {
@@ -130,16 +119,19 @@ void WebServer::_onStopHandler(AsyncWebServerRequest *request)
     return request->send(400, "text/plain", "Bad Request");
 }
 
-void    // _onSelectHandler
+void
 WebServer::_routeSelectorCallback(AsyncWebServerRequest* request)
 {
-    if (request->hasParam(web::k_route_param_intput) && request->hasParam(web::k_stop_param_input))
+    if (request->hasParam(web::k_route_param_input) && request->hasParam(web::k_stop_param_input))
     {
-        String selected_route = request->getParam(web::k_route_param_intput)->value();
-        String selected_line = request->getParam(web::k_stop_param_input)->value();
+        const String selected_route = request->getParam(web::k_route_param_input)->value();
+        const String selected_stop  = request->getParam(web::k_stop_param_input)->value();
 
-        m_onUpdateCallback(selected_route, selected_line);
-        
+        if (!m_onUpdateCallback(selected_route, selected_stop))
+        {
+            return request->send(400, "text/plain", "Bad request: Incorrect value");
+        }
+
         return request->send(200, "text/plain", "OK");
     }
 
@@ -182,7 +174,7 @@ void WebServer::_onSelectHandler(AsyncWebServerRequest *request, uint8_t* data, 
 
     if (cJSON_IsObject(root))
     {
-        cJSON* route_item = cJSON_GetObjectItem(root, web::k_route_param_intput);
+        cJSON* route_item = cJSON_GetObjectItem(root, web::k_route_param_input);
         cJSON* stop_item = cJSON_GetObjectItem(root, web::k_stop_param_input);
 
         if (cJSON_IsString(route_item) && cJSON_IsString(stop_item))
