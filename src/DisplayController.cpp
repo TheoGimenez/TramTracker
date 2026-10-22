@@ -4,7 +4,7 @@
  * Created Date: Thursday, January 1st 1970, 1:00:00 am
  * Author: Theo Gimenez
  * -----
- * Last Modified: Monday, October 19th 2026, 11:17:25 pm
+ * Last Modified: Tuesday, October 20th 2026, 9:53:49 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -13,10 +13,11 @@
 
 DisplayController::DisplayController(void) : m_renderer{
                                                  hardware::k_hardware_type,
-                                                 hardware::k_max_device,
-                                                 hardware::k_data_pin,
-                                                 hardware::k_clk_pin,
-                                                 hardware::k_cs_pin},
+                                                hardware::k_data_pin,
+                                                hardware::k_clk_pin,
+                                                hardware::k_cs_pin,
+                                                hardware::k_max_device
+                                                },
                                              m_renderFunctions{
                                                  &DisplayController::_renderDefault,
                                                  &DisplayController::_renderTmp,
@@ -61,12 +62,13 @@ DisplayController::setMainText(const String &text)
 void
 DisplayController::setDisplayToMainText(bool forceClear)
 {
-    m_renderer.displayScroll(m_bufferPtrs[BufferIndex::MAIN]->c_str(), PA_CENTER, PA_SCROLL_LEFT, 30);
-    m_state = RenderState::Default;
-    
     if (forceClear) {
         m_renderer.displayClear();
     }
+
+    m_renderer.displayScroll(m_bufferPtrs[BufferIndex::MAIN]->c_str(), PA_CENTER, PA_SCROLL_LEFT, 30);
+    m_state = RenderState::Default;
+    
     updateDisplay();
 }
 
