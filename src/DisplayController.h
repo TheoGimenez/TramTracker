@@ -4,22 +4,22 @@
  * Created Date: Thursday, January 1st 1970, 1:00:00 am
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 20th 2026, 10:00:13 pm
+ * Last Modified: Tuesday, October 27th 2026, 10:31:06 pm
  * Modified By: Theo Gimenez
  * -----
  */
 
-#ifndef SRC_DISPLAY_CONTROLLER_H_
-#define SRC_DISPLAY_CONTROLLER_H_
-
-#include <WString.h> //!STRING
 #include <cstdint>
-// #include <Arduino.h> //!
+#include <cstring>
+#include <string>
+//
 #include <MD_Parola.h>
 #include <MD_MAX72xx.h>
 #include <SPI.h>
 //
 #include "debugLog.h"
+#include "LockGuard.h"
+#include "utils.h"
 
 // LED Matrix Conf
 namespace {
@@ -29,64 +29,69 @@ constexpr uint8_t k_max_device    =  4; // 8x8 matrix devices to use
 constexpr uint8_t k_data_pin      = 23; // ESP data pin (connect to DIN of matrix)
 constexpr uint8_t k_clk_pin       = 18; // ESP clock pin (connect to CLK oqf matrix)
 constexpr uint8_t k_cs_pin        =  5; // ESP chip select pin (connect to CS/LOAD of matrix)
-//                                         // ESP input/output
-
+                                        // ESP input/output
 } // namespace hardware
+constexpr uint16_t k_buffer_size  = 256;
+constexpr uint8_t  k_main_speed   = 30;
+constexpr uint8_t  k_tmp_speed    = 70;
 } // namespace
 
-class DisplayController
+class DisplayContr
 {
 public:
-    enum RenderState
+    enum RenderState : uint8_t
     {
-        Default          = 0,
-        TemporaryMessage = 1,
-        StaticMessage    = 2,
-        render_state_count //* not a usable buffer, only used to get number of buffer defined. Should always be the lastest item.
+        Main      = 0,
+        Temporary = 1,
+        NoRender  = 2,
+        render_state_count
     };
 
 private:
-    enum BufferIndex
+    enum BufferIndex : uint8_t
     {
-        MAIN     = 0,
+        MAIN  = 0,
         TEMPORARY= 1,
-        WRITABLE = 2,
         buffer_index_count //* not a usable buffer, only used to get number of buffer defined. Should always be the lastest item.
     };
-    using RenderHandler = void (DisplayController::*)(void);
 
-    MD_Parola     m_renderer;
-    RenderHandler m_renderFunctions[RenderState::render_state_count];
+    using RenderFct = void (DisplayContr::*)(void);
 
-    //* multiple buffer array to avoid segment fault at read when a text is updated.
-    //* the buffer at index BufferIndex::WRITABLE (2) will be always the writable buffer, same as BufferIndex::MAIN (0) and BufferIndex::TEMPORARY (1).
-    String        m_textBuffers[3];
-    String*       m_bufferPtrs[3]; // pointers to the buffers that are currently being used for rendering and writing. The other buffer is free to be written to.
+    MD_Parola         m_renderer;
+    RenderFct         m_renderFunctions[render_state_count];
+
+    char              m_renderBuffers[buffer_index_count][k_buffer_size];
+    char              m_strQueueingBuffer[buffer_index_count][k_buffer_size];
+    // char*          m_bufferPtrs[buffer_index_count];
+    RenderState       m_renderState;
+    uint16_t          m_renderIterationCountdown;
     //
-    u_int8_t      m_state;
-    u_int16_t     m_displayOccurrenceCountdown;
+    SemaphoreHandle_t m_queueingBufferMutex;
+public:
+    DisplayContr              ();
 
 public:
-    DisplayController(void);
-    ~DisplayController() = default;
-public:
-    void begin               (void);
-    void updateDisplay       (void);
-
-    void setMainText         (const String& text);
-    void setDisplayToMainText(bool forceClear = false);
-
-    void setTemporaryText    (const String& text);
-    void setDisplayToTmpText (bool forceClear = false, const u_int16_t occurrenceCount = 1);
-   
-    void setDisplayToStatic  (bool forceClear = false);
+    void begin                (void);
+    void updateRender         (void);
+    void resetRender          (void);
+    void renderMainText       (void);
+    void renderTmpText        (bool forceRender, const uint8_t iteration);
+    void setMainText          (const std::string& text);
+    void setTmpText           (const std::string& text);
 
 private:
-    void _renderDefault      (void);
-    void _renderTmp          (void);
-    void _renderStatic       (void);
-    
-    void _swapWritableBuffer (const BufferIndex bufferToSwap);
-};
+    void _renderMain          (void);
+    void _renderTmp           (void);
+    void _noRender            (void);// m_renderer.displayClear();
 
-#endif //* SRC_DISPLAY_CONTROLLER_H_
+    // private utils:
+    bool _bufferIsEmpty       (const char* buffer);
+    void _copyQueueingToBuffer(const BufferIndex idx);
+
+    // void            _swapWritableBuffer(const BufferIndex bufferToSwap) {
+    //     char* const tmp = m_bufferPtrs[bufferToSwap];
+
+    //     m_bufferPtrs[bufferToSwap] = m_bufferPtrs[WRITABLE];
+    //     m_bufferPtrs[WRITABLE]     = tmp;
+    // }
+};

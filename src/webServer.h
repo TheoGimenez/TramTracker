@@ -4,7 +4,7 @@
  * Created Date: 15-09-2026, 10:16:53 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 20th 2026, 2:00:07 am
+ * Last Modified: Tuesday, October 27th 2026, 10:26:34 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -16,8 +16,8 @@
 #include <cstdint>
 #include <functional>
 #include <set>
+#include <string.h>
 //
-#include <WString.h> //! STRING
 #include <cJSON.h>
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
@@ -28,16 +28,17 @@
 
 namespace web
 {
+namespace {
     // inline constexpr const char* k_stop_selection_html = /include/stopSelection.html.h;
     inline constexpr const char* k_wifi_html = nullptr;
     inline constexpr const char* k_route_param_input = "route";
     inline constexpr const char* k_stop_param_input = "stop";
-} // namespace web
+} // namespace
 
-class WebServer
+class AsyncServer
 {
 public:
-    using Callback = std::function<bool(const String&, const String&)>;
+    using Callback = std::function<bool(const char*, const char*)>;
 
     enum DefaultHomePage : uint8_t
     {
@@ -53,9 +54,9 @@ private:
     // const char      m_pages[page_count];
 
 public:
-        WebServer(void);
+        AsyncServer(void);
 public:
-    void begin                  (Callback           onUpdateCallback);
+    void begin                  (Callback              onUpdateCallback);
     void setHomePage            (const DefaultHomePage p, Callback callback);
 private:
     void _homePageHandler       (AsyncWebServerRequest* request);
@@ -66,5 +67,6 @@ private:
     void _wifiConfigCallback    (AsyncWebServerRequest* request);
 
 };
+} // namespace web
 
 #endif /* SRC_WEB_SERVER_H_ */

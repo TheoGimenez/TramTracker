@@ -4,147 +4,144 @@
  * Created Date: Thursday, January 1st 1970, 1:00:00 am
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 20th 2026, 9:53:49 pm
+ * Last Modified: Tuesday, October 27th 2026, 10:49:17 pm
  * Modified By: Theo Gimenez
  * -----
  */
 
 #include "DisplayController.h"
 
-DisplayController::DisplayController(void) : m_renderer{
-                                                 hardware::k_hardware_type,
-                                                hardware::k_data_pin,
-                                                hardware::k_clk_pin,
-                                                hardware::k_cs_pin,
-                                                hardware::k_max_device
-                                                },
-                                             m_renderFunctions{
-                                                 &DisplayController::_renderDefault,
-                                                 &DisplayController::_renderTmp,
-                                                 &DisplayController::_renderStatic},
-                                             m_textBuffers{
-                                                 {"No data"},
-                                                 {},
-                                                 {}},
-                                             m_bufferPtrs{
-                                                 &m_textBuffers[BufferIndex::MAIN],
-                                                 &m_textBuffers[BufferIndex::TEMPORARY],
-                                                 &m_textBuffers[BufferIndex::WRITABLE]},
-                                             m_displayOccurrenceCountdown{0}
+DisplayContr::DisplayContr() : m_renderer{
+                                   hardware::k_hardware_type,
+                                   hardware::k_data_pin,
+                                   hardware::k_clk_pin,
+                                   hardware::k_cs_pin,
+                                   hardware::k_max_device},
+                               m_renderFunctions{
+                                   &DisplayContr::_renderMain,
+                                   &DisplayContr::_renderTmp,
+                                   &DisplayContr::_noRender},
+                               m_renderBuffers{{0}, {0}},
+                               m_strQueueingBuffer{{0}, {0}},
+                               m_renderIterationCountdown{0},
+                               m_queueingBufferMutex{xSemaphoreCreateMutex()}
 {
-    // MD_Parola m_renderer need to be initialized in setup() function before display anything.
+    xSemaphoreGive(m_queueingBufferMutex);
+    std::strcpy(m_renderBuffers[DEFAULT], "No data");
 }
 
 void
-DisplayController::begin(void)
+DisplayContr::begin(void)
 {
     m_renderer.begin();
     m_renderer.setIntensity(0);
     m_renderer.displayClear();
 
-    setDisplayToMainText();
+    renderMainText();
 }
 
 void
-DisplayController::updateDisplay(void)
+DisplayContr::updateRender(void)
 {
-    (this->*m_renderFunctions[m_state])();
+    (this->*m_renderFunctions[m_renderState])();
 }
 
 void
-DisplayController::setMainText(const String &text)
+DisplayContr::resetRender(void)
 {
-    *m_bufferPtrs[BufferIndex::WRITABLE] = text;
-    _swapWritableBuffer(BufferIndex::MAIN);
-    m_bufferPtrs[BufferIndex::WRITABLE]->clear();
+    m_renderer.displayScroll(
+        (m_renderState == RenderState::Main)
+            ? m_renderBuffers[MAIN]
+            : m_renderBuffers[TEMPORARY],
+        PA_CENTER, PA_SCROLL_LEFT, k_main_speed);
 }
 
 void
-DisplayController::setDisplayToMainText(bool forceClear)
+DisplayContr::renderMainText(void)
 {
-    if (forceClear) {
+    m_renderer.displayScroll(m_renderBuffers[MAIN], PA_CENTER, PA_SCROLL_LEFT, k_main_speed);
+    m_renderState = RenderState::Main;
+    updateRender();
+}
+
+void
+DisplayContr::renderTmpText(bool forceRender, const uint8_t iteration)
+{
+    if (forceRender)
+    {
         m_renderer.displayClear();
     }
-
-    m_renderer.displayScroll(m_bufferPtrs[BufferIndex::MAIN]->c_str(), PA_CENTER, PA_SCROLL_LEFT, 30);
-    m_state = RenderState::Default;
-    
-    updateDisplay();
+    m_renderIterationCountdown = iteration;
+    m_renderer.displayScroll(m_renderBuffers[TEMPORARY], PA_CENTER, PA_SCROLL_LEFT, k_tmp_speed);
+    m_renderState = RenderState::Temporary;
+    updateRender();
 }
 
 void
-DisplayController::setTemporaryText(const String& text)
-{ 
-    *m_bufferPtrs[BufferIndex::WRITABLE] = text;
-    _swapWritableBuffer(BufferIndex::TEMPORARY);
-    m_bufferPtrs[BufferIndex::WRITABLE]->clear();
-}
-
-void
-DisplayController::setDisplayToTmpText(bool forceClear, const u_int16_t occurrenceCount)
+DisplayContr::setMainText(const std::string &text)
 {
-    m_displayOccurrenceCountdown = occurrenceCount;
-    
-    if (forceClear) {
-        m_renderer.displayClear();
-    }
+    const auto lock = LockGuard{m_queueingBufferMutex, MAX_MUTEX_TIMEOUT};
+    if (!lock.isLock()) return;
 
-    m_renderer.displayScroll(m_bufferPtrs[BufferIndex::TEMPORARY]->c_str(), PA_CENTER, PA_SCROLL_LEFT, 70);
-    m_state = RenderState::TemporaryMessage;
-
-    updateDisplay();
+    text.copy(m_strQueueingBuffer[MAIN], text.size());
 }
 
+
 void
-DisplayController::setDisplayToStatic(bool forceClear)
+DisplayContr::setTmpText(const std::string &text)
 {
-    if (forceClear) {
-        m_renderer.displayClear();
-    }
+    const auto lock = LockGuard{m_queueingBufferMutex, MAX_MUTEX_TIMEOUT};
+    if (!lock.isLock()) return;
 
-    m_renderer.displayText(m_bufferPtrs[BufferIndex::TEMPORARY]->c_str(), PA_LEFT, 70, 1000, PA_NO_EFFECT);
-    m_state = RenderState::StaticMessage;
-
-    updateDisplay();
+    text.copy(m_strQueueingBuffer[TEMPORARY], text.size());
 }
 
-// private:
+// Private:
+bool
+DisplayContr::_bufferIsEmpty(const char* buffer)
+{
+    const auto lock = LockGuard{m_queueingBufferMutex, MAX_MUTEX_TIMEOUT};
+
+    return (buffer[0] == '\0');
+}
+
 void
-DisplayController::_renderDefault(void)
+DisplayContr::_renderMain(void)
 {
     if (m_renderer.displayAnimate())
     {
-LOG_PRINTLN(m_bufferPtrs[DisplayController::BufferIndex::MAIN]->c_str())
         m_renderer.displayReset();
+
+        if (!_bufferIsEmpty(m_strQueueingBuffer[BufferIndex::MAIN]))
+        { 
+            _copyQueueingToBuffer(BufferIndex::MAIN);
+            renderMainText();
+        }
     }
 }
 
 void
-DisplayController::_renderTmp(void)
+DisplayContr::_renderTmp(void)
 {
     if (m_renderer.displayAnimate())
     {
-LOG_PRINTLN(m_bufferPtrs[DisplayController::BufferIndex::TEMPORARY]->c_str())
-        if (m_displayOccurrenceCountdown == 0)
+        if (m_renderIterationCountdown--)
         {
-            return setDisplayToMainText();
+            renderMainText();
         }
-        --m_displayOccurrenceCountdown;
     }
 }
 
 void
-DisplayController::_renderStatic(void)
-{
-    m_renderer.displayAnimate();
-}
+DisplayContr::_noRender(void) {} // m_renderer.displayClear();
+
 
 void
-DisplayController::_swapWritableBuffer(const BufferIndex bufferToSwap)
+DisplayContr::_copyQueueingToBuffer(const BufferIndex idx)
 {
-    assert(bufferToSwap < BufferIndex::buffer_index_count);
-    String* tmp = m_bufferPtrs[bufferToSwap];
+    const auto lock = LockGuard{m_queueingBufferMutex, MAX_MUTEX_TIMEOUT};
+    if (!lock.isLock()) return;
 
-    m_bufferPtrs[bufferToSwap] = m_bufferPtrs[BufferIndex::WRITABLE];
-    m_bufferPtrs[BufferIndex::WRITABLE] = tmp;
+    std::strcpy(m_strQueueingBuffer[idx], m_renderBuffers[idx]);
+    m_strQueueingBuffer[idx][0] = '\0';
 }

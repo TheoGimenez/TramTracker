@@ -4,7 +4,7 @@
  * Created Date: 19-10-2026, 9:27:16 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Monday, October 19th 2026, 11:50:39 pm
+ * Last Modified: Tuesday, October 27th 2026, 10:15:30 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -19,6 +19,7 @@
 //
 #include "debugLog.h"
 #include "generated_app_config.h"
+#include "utils.h"
 
 namespace rt {
 

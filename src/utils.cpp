@@ -4,12 +4,14 @@
  * Created Date: 19-10-2026, 6:02:55 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 20th 2026, 1:53:29 am
+ * Last Modified: Tuesday, October 27th 2026, 9:54:45 pm
  * Modified By: Theo Gimenez
  * -----
  */
 
 #include "utils.h"
+
+namespace utils {
 
 bool same_string(const char* s1, const char* s2)
 {
@@ -32,7 +34,6 @@ time_t get_time(void)
     return now;
 }
 
-
 void configure_tz_time(const char* tz, const char* server1, const char* server2, const char* server3)
 {
     setenv("TZ", tz, 1);
@@ -49,16 +50,9 @@ void configure_tz_time(const char* tz, const char* server1, const char* server2,
     sntp_init();
 }
 
-// inline char*
-// proto::nbr_to_buff(const uint32_t val, char* dest, const size_t capacity)
-// {
-//     // const int written = snprintf(dest, capacity, "%" PRIu32, val); // doesn't test if dest have the right size,
-//     //                                                               // that the responsability of the fct user.
-    
-//     // dest[written < 0 ? 0 : written] = '\0'; // if snprintfs return a value that above capacity : user responsability.
+void task_delay(const uint32_t ms)
+{
+    vTaskDelay(pdMS_TO_TICKS(ms));   
+}
 
-//     // return dest;
-//     auto [ptr, ec] = std::to_chars(dest, dest + capacity, val);
-//     *ptr = '\0';
-//     return dest;
-// }
+} // utils

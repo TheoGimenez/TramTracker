@@ -4,7 +4,7 @@
  * Created Date: 18-09-2026, 10:20:38 am
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 20th 2026, 12:31:55 am
+ * Last Modified: Tuesday, October 27th 2026, 10:18:14 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -16,9 +16,9 @@
 #include <cstdint>
 #include <optional>
 #include <set>
+#include <string>
 #include <vector>
-//
-#include <WString.h> //!STRING
+#include <string.h>
 //
 #include "generated_stops.h"
 #include "../app/transitType.h"
@@ -28,9 +28,10 @@ namespace transit
 {
     using NameVisitor = bool (*)(const char *name, void *context);
 
-    std::vector<String>             get_routes_list        (void);
-    uint8_t                         get_route_idx          (const String &route);
-    std::set<String>                get_stops_list         (const uint8_t route_idx);
+    std::vector<std::string>        get_routes_list        (void);
+    uint8_t                         get_route_idx          (const char* route);
+    uint8_t                         get_route_idx          (const std::string &route);
+    std::set<std::string>           get_stops_list         (const uint8_t route_idx);
     std::optional<stop_selection_s> resolve_selected_stop  (const char *routeShortName, const char *stopName);
     //
     void                            forEachRouteName       (NameVisitor visitor, void *context);

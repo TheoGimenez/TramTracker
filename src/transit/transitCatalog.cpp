@@ -4,7 +4,7 @@
  * File Created: Wednesday, 30th September 2026 9:23:44, pm
  * Author: Nathan Fain
  * -----
- * Last Modified: Tuesday, October 20th 2026, 12:31:23 am
+ * Last Modified: Tuesday, October 27th 2026, 10:18:30 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -21,7 +21,7 @@ transit::resolve_selected_stop(const char* routeShortName, const char* stopName)
     while (route_index < gtfs::k_route_count)
     {
         const char* route_name = gtfs::k_routes[route_index].name();
-        if (same_string(route_name, routeShortName))
+        if (utils::same_string(route_name, routeShortName))
         {
             resolved_stop.route = route_name;
             break;
@@ -40,7 +40,7 @@ transit::resolve_selected_stop(const char* routeShortName, const char* stopName)
         }
 
         const gtfs::Stop& stop = gtfs::k_stops[link.stop_index];
-        if (same_string(stop.name(), stopName))
+        if (utils::same_string(stop.name(), stopName))
         {
             resolved_stop.name = stop.name();
             resolved_stop.ids[link.direction_id] = stop.id;
@@ -50,10 +50,9 @@ transit::resolve_selected_stop(const char* routeShortName, const char* stopName)
                 return std::optional<stop_selection_s>{resolved_stop};
             }
         }
-
     }
     
-    // some stop deserve only one direction
+    // some stop are meant for only one direction.
     if (resolved_stop.ids[0] + resolved_stop.ids[1] != 0)
     {
         return std::optional<stop_selection_s>{resolved_stop};
@@ -62,30 +61,30 @@ transit::resolve_selected_stop(const char* routeShortName, const char* stopName)
     return std::nullopt;
 }
 
-std::vector<String>
+std::vector<std::string>
 transit::get_routes_list(void)
 {
-    std::vector<String> routes;
+    std::vector<std::string> routes;
 
     routes.reserve(gtfs::k_route_count);
     // beggin index to 1, 0 is reserved for "unknown"
     for (size_t i = 1; i < gtfs::k_route_count; ++i)
     {
-        routes.push_back(String(gtfs::k_routes[i].name()));
+        routes.push_back(std::string(gtfs::k_routes[i].name()));
     }
 
     return routes;
 }
 
 uint8_t
-transit::get_route_idx(const String& route)
+transit::get_route_idx(const char* route)
 {
     size_t idx = gtfs::k_route_count;
 
     do
     {
         --idx;
-        if (route.equals(gtfs::k_routes[idx].name()))
+        if (std::strcmp(route, gtfs::k_routes[idx].name()))
         {
             break;
         }
@@ -94,21 +93,27 @@ transit::get_route_idx(const String& route)
     return idx;
 }
 
-std::set<String>
+uint8_t
+transit::get_route_idx(const std::string& route)
+{
+    return get_route_idx(route.c_str());
+}
+
+std::set<std::string>
 transit::get_stops_list(const uint8_t route_idx)
 {
-    std::set<String> stops;
+    std::set<std::string> stops;
 
 
     for (size_t i = 0; i < gtfs::k_stop_route_count; ++i)
     {
         const auto& link = gtfs::k_stop_routes[i];
-    
+
         if (link.route_index != route_idx)
         {
             continue;
         }
-        
+
         stops.insert(gtfs::k_stops[link.stop_index].name());
     }
     return stops;

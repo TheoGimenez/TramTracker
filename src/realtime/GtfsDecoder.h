@@ -4,7 +4,7 @@
  * Created Date: 19-10-2026, 9:44:51 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 20th 2026, 2:06:15 am
+ * Last Modified: Tuesday, October 27th 2026, 10:13:55 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -64,16 +64,16 @@ namespace context {
     struct feed_s
     {
         const StopIdBuffers stop_ids;
-        const char *const   route;
+        const char* const   route;
         const int64_t       now;
         int64_t             next_arrivals[k_direction_count];
     };
 
     struct stop_time_update_s
     {
-        const feed_s &feed;
-        int64_t remaining_seconds;
-        int8_t direction;
+        const feed_s& feed;
+        int64_t       remaining_seconds;
+        int8_t        direction;
     };
 } // namespace context
     
@@ -82,10 +82,10 @@ namespace context {
         context::feed_s m_context;
         
     public:
-        Decoder(context::feed_s feed);
+                                        Decoder         (context::feed_s feed);
         
     public:
-        bool                            decode(const size_t contentLength);
+        bool                            decode          (const size_t contentLength);
         std::optional<arrival_update_s> getArrivalUpdate(void) const;
     };
 } // namespace Gtfs

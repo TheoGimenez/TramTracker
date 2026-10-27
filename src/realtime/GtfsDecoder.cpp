@@ -4,7 +4,7 @@
  * Created Date: 19-10-2026, 9:58:03 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 20th 2026, 1:48:38 am
+ * Last Modified: Tuesday, October 27th 2026, 10:12:54 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -37,11 +37,11 @@ stop_time_update_decoder(pb_istream_t* stream, const pb_field_iter_t*, void** ar
     {
         return true;
     }
-    if (same_string(stop_update.stop_id, context.feed.stop_ids[k_dir_A]))
+    if (utils::same_string(stop_update.stop_id, context.feed.stop_ids[k_dir_A]))
     {
         context.direction = k_dir_A;
     }
-    else if (same_string(stop_update.stop_id, context.feed.stop_ids[k_dir_B]))
+    else if (utils::same_string(stop_update.stop_id, context.feed.stop_ids[k_dir_B]))
     {
         context.direction = k_dir_B;
     }
@@ -97,7 +97,7 @@ trip_update_decoder(pb_istream_t* stream, const pb_field_iter_t*, void** arg)
 
     const auto& trip = entity.trip_update.trip;
     //* Route comparaison ensure that a earliest arrival found in stopTimeUpdate of a given stop is not another shared route.
-    if (!trip.has_route_id || !same_string(trip.route_id, context.route))
+    if (!trip.has_route_id || !utils::same_string(trip.route_id, context.route))
     {
         return true;
     }
@@ -112,33 +112,6 @@ trip_update_decoder(pb_istream_t* stream, const pb_field_iter_t*, void** arg)
 
     return true;
 }
-
-// bool
-// GtfsDecoder::feed_header_decoder(pb_istream_t* stream, const pb_field_iter_t*, void**)
-// {
-//     light_transit_rt_FeedHeader feed_header = light_transit_rt_FeedHeader_init_default;
-
-//     if (!pb_decode(stream,light_transit_rt_FeedHeader_fields, &feed_header))
-//     {
-//         LOG_PRINTF("FeedHeader decode failed: %s, bytes_left=%u\n",
-//                    PB_GET_ERROR(stream),
-//                    static_cast<unsigned>(stream->bytes_left))
-//         return false;
-//     }
-
-//     // If dataset incrementaity fetching isn't define to full, ignore all stream.
-//     if (!feed_header.has_incrementality ||
-//         feed_header.incrementality != light_transit_rt_FeedHeader_Incrementality_FULL_DATASET)
-//     {
-//         return false;
-//     }
-//     return true;
-// }
-
-// static bool entityDecoder(pb_istream_t* stream, const pb_field_iter_t*, void** arg)
-// {
-//     return trip_update_decoder(stream, nullptr, arg);
-// }
 
 // Network read wrapper to separate network and Protobuf logics.
 static bool nanopb_read_callback(pb_istream_t* stream, pb_byte_t* buffer, size_t count)

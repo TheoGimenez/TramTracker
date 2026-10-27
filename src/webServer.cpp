@@ -4,20 +4,22 @@
  * Created Date: 15-09-2026, 10:16:53 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 20th 2026, 2:00:06 am
+ * Last Modified: Tuesday, October 27th 2026, 10:27:14 pm
  * Modified By: Theo Gimenez
  * -----
  */
 
 #include "WebServer.h"
 
-WebServer::WebServer(void) : m_server{env::k_web_server_port}, m_pageToRender{DefaultHomePage::SELECT_STOP_PAGE}
+namespace web {
+
+AsyncServer::AsyncServer(void) : m_server{env::k_web_server_port}, m_pageToRender{DefaultHomePage::SELECT_STOP_PAGE}
 {}
 
 void
-WebServer::begin(Callback callback)
+AsyncServer::begin(Callback callback)
 {
-    m_onUpdateCallback = callback;
+m_onUpdateCallback = callback;
 
     m_server.on("/",       HTTP_GET,  [this](auto*r ){ _homePageHandler(r); });
     m_server.on("/stops",  HTTP_GET,  [this](auto*r ){ _onStopHandler(r); });
@@ -28,7 +30,7 @@ WebServer::begin(Callback callback)
 
 
 void
-WebServer::setHomePage(const DefaultHomePage p, Callback callback)
+AsyncServer::setHomePage(const DefaultHomePage p, Callback callback)
 {
     m_pageToRender     = p;
     m_onUpdateCallback = callback;
@@ -61,7 +63,7 @@ stop_selector_process_template(const String& var)
 }
 
 void
-WebServer::_homePageHandler(AsyncWebServerRequest* request)
+AsyncServer::_homePageHandler(AsyncWebServerRequest* request)
 {
     if (m_pageToRender == DefaultHomePage::SELECT_STOP_PAGE)
     {
@@ -74,7 +76,7 @@ WebServer::_homePageHandler(AsyncWebServerRequest* request)
 }
 
 void
-WebServer::_onSelectHandler(AsyncWebServerRequest* request)
+AsyncServer::_onSelectHandler(AsyncWebServerRequest* request)
 {
     if (m_pageToRender == DefaultHomePage::SELECT_STOP_PAGE)
     {
@@ -86,16 +88,16 @@ WebServer::_onSelectHandler(AsyncWebServerRequest* request)
     }
 }
 
-void WebServer::_onStopHandler(AsyncWebServerRequest *request)
+void AsyncServer::_onStopHandler(AsyncWebServerRequest *request)
 {
     if (request->hasParam(web::k_route_param_input))
     {
         String     selected_route = request->getParam(web::k_route_param_input)->value();
-        const auto route_idx      = transit::get_route_idx(selected_route);
+        const auto route_idx      = transit::get_route_idx(selected_route.c_str());
 
         if (route_idx) // route idx 0 is for unknown
         {
-            std::set<String> stops = transit::get_stops_list(route_idx);
+            std::set<std::string> stops = transit::get_stops_list(route_idx);
 
             if (stops.size())
             {
@@ -120,14 +122,14 @@ void WebServer::_onStopHandler(AsyncWebServerRequest *request)
 }
 
 void
-WebServer::_routeSelectorCallback(AsyncWebServerRequest* request)
+AsyncServer::_routeSelectorCallback(AsyncWebServerRequest* request)
 {
     if (request->hasParam(web::k_route_param_input) && request->hasParam(web::k_stop_param_input))
     {
         const String selected_route = request->getParam(web::k_route_param_input)->value();
         const String selected_stop  = request->getParam(web::k_stop_param_input)->value();
 
-        if (!m_onUpdateCallback(selected_route, selected_stop))
+        if (!m_onUpdateCallback(selected_route.c_str(), selected_stop.c_str()))
         {
             return request->send(400, "text/plain", "Bad request: Incorrect value");
         }
@@ -139,56 +141,8 @@ WebServer::_routeSelectorCallback(AsyncWebServerRequest* request)
 }
 
 void
-WebServer::_wifiConfigCallback(AsyncWebServerRequest* request)
+AsyncServer::_wifiConfigCallback(AsyncWebServerRequest* request)
 {
 }
 
-// Legacy callback that use json.
-/*
-void WebServer::_onSelectHandler(AsyncWebServerRequest *request, uint8_t* data, size_t len, size_t index, size_t total)
-{
-    //! Nota bene for futur me that read here: if the request if big, the data are comming chunked.
-    //! if json < 2ko there a high probability that all data are on chunk 'index' 0.
-    if (index != 0 || len != total)
-    {
-        return request->send(413, "text/plain", "Payload Too Large or chunked");
-    }
-
-    char* json_buff = (char*) malloc(len + 1);
-    if (json_buff == NULL)
-    {
-        return request->send(500, "text/plain", "Out of memory");
-    }
-
-    memcpy(json_buff, data, len);
-    json_buff[len] = '\0';
-
-    cJSON* root = cJSON_Parse(json_buff);
-
-    free(json_buff);
-
-    if (root == NULL)
-    {
-        return request->send(500, "text/plain", "Bad Request: invalid JSON");
-    }
-
-    if (cJSON_IsObject(root))
-    {
-        cJSON* route_item = cJSON_GetObjectItem(root, web::k_route_param_input);
-        cJSON* stop_item = cJSON_GetObjectItem(root, web::k_stop_param_input);
-
-        if (cJSON_IsString(route_item) && cJSON_IsString(stop_item))
-        {
-            String route = route_item->valuestring;
-            String stop = stop_item->valuestring;
-
-            m_onUpdateCallback(route, stop);
-
-            cJSON_Delete(root);
-            return request->send(200, "text/plain", "OK");
-        }
-    }
-    cJSON_Delete(root);
-    return request->send(400, "text/plain", "Bad Request");
-}
-*/
+} // namespace web

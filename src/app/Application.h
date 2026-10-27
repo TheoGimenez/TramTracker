@@ -4,7 +4,7 @@
  * Created Date: 18-10-2026, 10:04:31 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 20th 2026, 1:30:24 am
+ * Last Modified: Tuesday, October 27th 2026, 10:31:58 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -27,11 +27,13 @@
 #include "utils.h"
 #include "WebServer.h"
 
+#include "../transit/transitCatalog.h"
+
 #define TZ_Europe_Paris PSTR("CET-1CEST,M3.5.0,M10.5.0/3")
 
 namespace {
-constexpr const char* k_ntp_timezone = TZ_Europe_Paris;
-constexpr const char* k_ntp_server   = "pool.ntp.org";
+constexpr const char* k_ntp_timezone    = TZ_Europe_Paris;
+constexpr const char* k_ntp_server      = "pool.ntp.org";
 constexpr const char* k_text_no_service = "Pas de service.";
 
 namespace hardware {
@@ -42,22 +44,29 @@ namespace hardware {
 
 class Application
 {
-    DisplayController m_display;        // LED matrix controller
-    WebServer         m_webServer;
+    DisplayContr      m_display;        // LED matrix controller
+    web::AsyncServer  m_webServer;
     // TransitCatalog    m_transitCatalog;
-    stop_selection_s  m_selectedStop    = {0};
+    // stop_selection_s  m_selectedStop{transit::resolve_selected_stop("3", "Place Carnot").value()};
+    stop_selection_s  m_selected_stop;
+    SemaphoreHandle_t m_stop_mutex;
+public:
+                Application               ();
 
 public:
-    void   begin               (void);
-    void   update              (void);
+// Application():m_display{}, m_webServer{}, m_selectedStop{transit::resolve_selected_stop("3", "Place Carnot").value()} {}
+    void        begin                     (void);
+    void        updateDisplay             (void);
+    void        updateArrivals            (void);
 
 private:
-    void   _initializeHarware  (void);
-    void   _initializeNetwork  (void);
-    void   _initializeWebServer(void);
-    
-    bool   _onStopSelection    (const String& routeName, const String& stopName);
-    void   _getStopNextArrivals(void);
+    void        _initializeHarware        (void);
+    void        _initializeNetwork        (void);
+    void        _initializeWebServer      (void);
+
+    bool        _onStopSelection          (const char* routeName, const char* stopName);
+    void        _stopNextArrivalsService  (void);
+    std::string _formatNextArrivalToString(const time_t remainingSecs[2]);
 };
 
 #endif // SRC_APP_APPLICATION_H_

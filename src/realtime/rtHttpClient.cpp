@@ -4,7 +4,7 @@
  * Created Date: 19-10-2026, 9:27:23 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Monday, October 19th 2026, 11:40:30 pm
+ * Last Modified: Tuesday, October 27th 2026, 10:14:32 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -72,7 +72,7 @@ rt::get_content_length(void)
                 LOG_PRINTLN("Connection closed before HTTP headers")
                 return content_length;
             }
-            delay(10);
+            utils::task_delay(10);
             continue;
         }
 

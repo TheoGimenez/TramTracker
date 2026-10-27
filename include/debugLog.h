@@ -4,7 +4,7 @@
  * Created Date: 18-09-2026, 4:33:19 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Wednesday, October 21st 2026, 6:47:19 pm
+ * Last Modified: Tuesday, October 27th 2026, 10:45:54 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -20,7 +20,7 @@
 
         #define INIT_LOG {\
             Serial.begin(115200);\
-            delay(1000);}
+            delay(500);}
     #else
         #define LOG_PRINT(...)
         #define LOG_PRINTLN(...)
