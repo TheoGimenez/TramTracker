@@ -4,7 +4,7 @@
  * Created Date: Thursday, January 1st 1970, 1:00:00 am
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 27th 2026, 10:49:17 pm
+ * Last Modified: Wednesday, October 28th 2026, 11:23:41 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -23,11 +23,12 @@ DisplayContr::DisplayContr() : m_renderer{
                                    &DisplayContr::_noRender},
                                m_renderBuffers{{0}, {0}},
                                m_strQueueingBuffer{{0}, {0}},
+                               m_queuingBufferLen{0},
                                m_renderIterationCountdown{0},
                                m_queueingBufferMutex{xSemaphoreCreateMutex()}
 {
     xSemaphoreGive(m_queueingBufferMutex);
-    std::strcpy(m_renderBuffers[DEFAULT], "No data");
+    std::strcpy(m_renderBuffers[MAIN], "No data");
 }
 
 void
@@ -67,6 +68,8 @@ DisplayContr::renderMainText(void)
 void
 DisplayContr::renderTmpText(bool forceRender, const uint8_t iteration)
 {
+    _copyQueueingToBuffer(BufferIndex::TEMPORARY);
+
     if (forceRender)
     {
         m_renderer.displayClear();
@@ -83,7 +86,10 @@ DisplayContr::setMainText(const std::string &text)
     const auto lock = LockGuard{m_queueingBufferMutex, MAX_MUTEX_TIMEOUT};
     if (!lock.isLock()) return;
 
-    text.copy(m_strQueueingBuffer[MAIN], text.size());
+    const auto copied_size = text.copy(m_strQueueingBuffer[MAIN], text.length()); // use text.size() because we are sure bjuffer had enough length
+
+    m_strQueueingBuffer[MAIN][copied_size] = '\0';
+    m_queuingBufferLen[MAIN] = text.length();
 }
 
 
@@ -93,7 +99,10 @@ DisplayContr::setTmpText(const std::string &text)
     const auto lock = LockGuard{m_queueingBufferMutex, MAX_MUTEX_TIMEOUT};
     if (!lock.isLock()) return;
 
-    text.copy(m_strQueueingBuffer[TEMPORARY], text.size());
+    const auto copied_size = text.copy(m_strQueueingBuffer[TEMPORARY], text.length()); // use text.size() because we are sure bjuffer had enough length
+
+    m_strQueueingBuffer[TEMPORARY][copied_size] = '\0';
+    m_queuingBufferLen[TEMPORARY] = text.length();
 }
 
 // Private:
@@ -142,6 +151,9 @@ DisplayContr::_copyQueueingToBuffer(const BufferIndex idx)
     const auto lock = LockGuard{m_queueingBufferMutex, MAX_MUTEX_TIMEOUT};
     if (!lock.isLock()) return;
 
-    std::strcpy(m_strQueueingBuffer[idx], m_renderBuffers[idx]);
+    std::strcpy(m_renderBuffers[idx], m_strQueueingBuffer[idx]);
+    const auto str_len = m_queuingBufferLen[idx];
+
+    m_renderBuffers[idx][str_len - 1] = '\0';
     m_strQueueingBuffer[idx][0] = '\0';
 }

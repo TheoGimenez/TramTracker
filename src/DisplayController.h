@@ -4,7 +4,7 @@
  * Created Date: Thursday, January 1st 1970, 1:00:00 am
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 27th 2026, 10:31:06 pm
+ * Last Modified: Wednesday, October 28th 2026, 11:18:09 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -62,7 +62,7 @@ private:
 
     char              m_renderBuffers[buffer_index_count][k_buffer_size];
     char              m_strQueueingBuffer[buffer_index_count][k_buffer_size];
-    // char*          m_bufferPtrs[buffer_index_count];
+    uint16_t          m_queuingBufferLen[buffer_index_count];
     RenderState       m_renderState;
     uint16_t          m_renderIterationCountdown;
     //

@@ -4,7 +4,7 @@
  * Created Date: 18-10-2026, 10:04:31 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 27th 2026, 10:31:58 pm
+ * Last Modified: Wednesday, October 28th 2026, 10:50:27 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -46,15 +46,13 @@ class Application
 {
     DisplayContr      m_display;        // LED matrix controller
     web::AsyncServer  m_webServer;
-    // TransitCatalog    m_transitCatalog;
-    // stop_selection_s  m_selectedStop{transit::resolve_selected_stop("3", "Place Carnot").value()};
     stop_selection_s  m_selected_stop;
     SemaphoreHandle_t m_stop_mutex;
+    bool              m_boot_button_pressed;
 public:
                 Application               ();
 
 public:
-// Application():m_display{}, m_webServer{}, m_selectedStop{transit::resolve_selected_stop("3", "Place Carnot").value()} {}
     void        begin                     (void);
     void        updateDisplay             (void);
     void        updateArrivals            (void);
@@ -66,7 +64,7 @@ private:
 
     bool        _onStopSelection          (const char* routeName, const char* stopName);
     void        _stopNextArrivalsService  (void);
-    std::string _formatNextArrivalToString(const time_t remainingSecs[2]);
+    std::string _formatNextArrivalToString(const stop_selection_s& selectedStop, const time_t remainingSecs[2]);
 };
 
 #endif // SRC_APP_APPLICATION_H_

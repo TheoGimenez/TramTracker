@@ -4,7 +4,7 @@
  * Created Date: 18-10-2026, 10:04:39 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 27th 2026, 10:42:47 pm
+ * Last Modified: Wednesday, October 28th 2026, 10:51:55 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -14,20 +14,14 @@
 Application::Application() : m_display{},
                              m_webServer{},
                              m_selected_stop{0},
-                             m_stop_mutex{xSemaphoreCreateMutex()}
+                             m_stop_mutex{xSemaphoreCreateMutex()},
+                             m_boot_button_pressed{false}
 {
-    xSemaphoreGive(m_stop_mutex);
 }
 
 void
 Application::begin()
 {
-    // const auto selected = transit::resolve_selected_stop("3", "Place Carnot").value();
-    // xQueueSend(
-        // m_selected_stop_queue,
-        // &selected,
-        // portTICK_PERIOD_MS * 500);
-
     _initializeHarware();
     _initializeNetwork();
     _initializeWebServer();
@@ -46,12 +40,13 @@ Application::updateDisplay(void)
 {
     m_display.updateRender();
 
-    if (digitalRead(hardware::k_boot_button) == LOW)
+    const bool boot_button_pressed = (digitalRead(hardware::k_boot_button) == LOW);
+    if (boot_button_pressed && !m_boot_button_pressed)
     {
         m_display.setTmpText(WiFi.localIP().toString().c_str());
         m_display.renderTmpText(true, 2);
-        utils::task_delay(100);
     }
+    m_boot_button_pressed = boot_button_pressed;
 }
 
 void
@@ -65,7 +60,7 @@ void
 Application::_initializeHarware(void)
 {
     pinMode(hardware::k_esp_led, OUTPUT);             // esp32 board LED that blink to advertise specific situation.
-    pinMode(hardware::k_boot_button, INPUT_PULLDOWN); // button used to show IP addres on display.
+    pinMode(hardware::k_boot_button, INPUT_PULLUP); // button used to show IP address on display.
 
     m_display.begin();
 }
@@ -105,43 +100,54 @@ Application::_initializeWebServer(void)
 bool
 Application::_onStopSelection(const char* selectedRouteName, const char* selectedStopName)
 {
+    LOG_PRINTF("Stop selection request: route='%s', stop='%s'\n",
+               selectedRouteName != nullptr ? selectedRouteName : "<null>",
+               selectedStopName != nullptr ? selectedStopName : "<null>")
+
+    if (selectedRouteName == nullptr || selectedStopName == nullptr)
+    {
+        LOG_PRINTLN("Stop selection rejected: route or stop parameter is null")
+        return false;
+    }
+
     auto resolved_stop = transit::resolve_selected_stop(selectedRouteName, selectedStopName);
 
     if (resolved_stop.has_value() == true)
     {
-        if (xSemaphoreTake(m_stop_mutex, MAX_MUTEX_TIMEOUT) == pdTRUE)
         {
+            const auto lock = LockGuard{m_stop_mutex, MAX_MUTEX_TIMEOUT};
+            if (!lock.isLock())
+            {
+                LOG_PRINTLN("Stop selection rejected: failed to acquire stop mutex")
+                return false;
+            }
+
             m_selected_stop = *resolved_stop;
-            xSemaphoreGive(m_stop_mutex);
         }
 
         m_display.setTmpText(std::string("Arret ") + selectedStopName + " selectionne...");
         m_display.renderTmpText(true, 1);
-//! FOR DEBUG PURPOSE ONLY
-// _stopNextArrivalsService();
-//         _stopNextArrivalsService();
-//!
+
         return true;
     }
 
+    LOG_PRINTF("Stop selection rejected: route '%s' or stop '%s' is unknown or not served\n",
+               selectedRouteName,
+               selectedStopName)
     return false;
 }
 
 std::string
-Application::_formatNextArrivalToString(const time_t remainingSecs[2])
+Application::_formatNextArrivalToString(const stop_selection_s& selectedStop, const time_t remainingSecs[2])
 {
     std::string display_buffer;
 
     display_buffer.reserve(512);
 
-    if (xSemaphoreTake(m_stop_mutex, MAX_MUTEX_TIMEOUT) == pdTRUE)
-    {
-        display_buffer.append(m_selected_stop.route);
-        display_buffer.append(" ");
-        display_buffer.append(m_selected_stop.name);
-        display_buffer.append(":");
-        xSemaphoreGive(m_stop_mutex);
-    }
+    display_buffer.append(selectedStop.route);
+    display_buffer.append(" ");
+    display_buffer.append(selectedStop.name);
+    display_buffer.append(":");
     
     if (remainingSecs[k_dir_A])
     {
@@ -183,20 +189,41 @@ Application::_formatNextArrivalToString(const time_t remainingSecs[2])
 
 void Application::_stopNextArrivalsService(void)
 {
-    if (xSemaphoreTake(m_stop_mutex, MAX_MUTEX_TIMEOUT) == pdTRUE)
+    stop_selection_s selected_stop{};
     {
+        const auto lock = LockGuard{m_stop_mutex, MAX_MUTEX_TIMEOUT};
+        if (!lock.isLock()) return;
 
-        const auto next_arrivals = rt::fetch_next_arrival(m_selected_stop.route, m_selected_stop.ids, utils::get_time());
-        if (next_arrivals.has_value())
+        selected_stop = m_selected_stop;
+    }
+
+    if (selected_stop.route == nullptr || selected_stop.name == nullptr || (selected_stop.ids[k_dir_A] == 0 && selected_stop.ids[k_dir_B] == 0))
+    {
+        return;
+    }
+
+    const auto next_arrivals = rt::fetch_next_arrival(selected_stop.route, selected_stop.ids, utils::get_time());
+    std::string text_to_display;
+
+    if (next_arrivals.has_value())
+    {
+        text_to_display = _formatNextArrivalToString(selected_stop, next_arrivals->seconds_until_arrivals);
+    }
+    else
+    {
+        text_to_display = std::string(selected_stop.route) + " " + selected_stop.name + ": " + k_text_no_service;
+    }
+
+    {
+        const auto lock = LockGuard{m_stop_mutex, MAX_MUTEX_TIMEOUT};
+        if (!lock.isLock()) return;
+
+        // case selection was changed during processing:
+        if (m_selected_stop.route != selected_stop.route || m_selected_stop.name != selected_stop.name) // no need to check ids
         {
-            const auto text_to_display = _formatNextArrivalToString(next_arrivals->seconds_until_arrivals);
-            m_display.setMainText(text_to_display);
+            return;
         }
-        else
-        {
-            m_display.setMainText(std::string(m_selected_stop.route) + " " + m_selected_stop.name + ": " + k_text_no_service);
-        }
-// m_display.renderMainText();
-        xSemaphoreGive(m_stop_mutex);
+
+        m_display.setMainText(text_to_display);
     }
 }
