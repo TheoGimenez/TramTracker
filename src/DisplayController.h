@@ -4,7 +4,7 @@
  * Created Date: Thursday, January 1st 1970, 1:00:00 am
  * Author: Theo Gimenez
  * -----
- * Last Modified: Wednesday, October 28th 2026, 11:18:09 pm
+ * Last Modified: Thursday, October 29th 2026, 2:37:02 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -36,7 +36,7 @@ constexpr uint8_t  k_main_speed   = 30;
 constexpr uint8_t  k_tmp_speed    = 70;
 } // namespace
 
-class DisplayContr
+class DisplayController
 {
 public:
     enum RenderState : uint8_t
@@ -55,7 +55,7 @@ private:
         buffer_index_count //* not a usable buffer, only used to get number of buffer defined. Should always be the lastest item.
     };
 
-    using RenderFct = void (DisplayContr::*)(void);
+    using RenderFct = void (DisplayController::*)(void);
 
     MD_Parola         m_renderer;
     RenderFct         m_renderFunctions[render_state_count];
@@ -68,30 +68,23 @@ private:
     //
     SemaphoreHandle_t m_queueingBufferMutex;
 public:
-    DisplayContr              ();
+    DisplayController         ();
 
 public:
-    void begin                (void);
-    void updateRender         (void);
-    void resetRender          (void);
-    void renderMainText       (void);
-    void renderTmpText        (bool forceRender, const uint8_t iteration);
-    void setMainText          (const std::string& text);
-    void setTmpText           (const std::string& text);
+    void              begin                (void);
+    void              updateRender         (void);
+    void              resetRender          (void);
+    void              renderMainText       (void);
+    void              renderTmpText        (bool forceRender, const uint8_t iteration);
+    void              setMainText          (const std::string& text);
+    void              setTmpText           (const std::string& text);
 
 private:
-    void _renderMain          (void);
-    void _renderTmp           (void);
-    void _noRender            (void);// m_renderer.displayClear();
+    void              _renderMain          (void);
+    void              _renderTmp           (void);
+    void              _noRender            (void);// m_renderer.displayClear();
 
     // private utils:
-    bool _bufferIsEmpty       (const char* buffer);
-    void _copyQueueingToBuffer(const BufferIndex idx);
-
-    // void            _swapWritableBuffer(const BufferIndex bufferToSwap) {
-    //     char* const tmp = m_bufferPtrs[bufferToSwap];
-
-    //     m_bufferPtrs[bufferToSwap] = m_bufferPtrs[WRITABLE];
-    //     m_bufferPtrs[WRITABLE]     = tmp;
-    // }
+    bool              _bufferIsEmpty       (const char* buffer);
+    void              _copyQueueingToBuffer(const BufferIndex idx);
 };
