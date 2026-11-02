@@ -4,7 +4,7 @@
  * Created Date: 18-09-2026, 10:20:38 am
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 27th 2026, 10:18:14 pm
+ * Last Modified: Monday, November 2nd 2026, 12:27:55 am
  * Modified By: Theo Gimenez
  * -----
  */
@@ -29,6 +29,7 @@ namespace transit
     using NameVisitor = bool (*)(const char *name, void *context);
 
     std::vector<std::string>        get_routes_list        (void);
+    const char*                     get_stop_name          (const uint32_t stop_id);
     uint8_t                         get_route_idx          (const char* route);
     uint8_t                         get_route_idx          (const std::string &route);
     std::set<std::string>           get_stops_list         (const uint8_t route_idx);

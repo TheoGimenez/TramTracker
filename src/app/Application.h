@@ -4,7 +4,7 @@
  * Created Date: 18-10-2026, 10:04:31 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Wednesday, October 28th 2026, 10:50:27 pm
+ * Last Modified: Saturday, October 31st 2026, 11:18:55 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -12,10 +12,13 @@
 #ifndef SRC_APP_APPLICATION_H_
 #define SRC_APP_APPLICATION_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <string>
 //
-// #include <Arduino.h>
 #include <WiFi.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 //
 #include "debugLog.h"
 #include "DisplayController.h"
@@ -29,42 +32,8 @@
 
 #include "../transit/transitCatalog.h"
 
-#define TZ_Europe_Paris PSTR("CET-1CEST,M3.5.0,M10.5.0/3")
-
-namespace {
-constexpr const char* k_ntp_timezone    = TZ_Europe_Paris;
-constexpr const char* k_ntp_server      = "pool.ntp.org";
-constexpr const char* k_text_no_service = "Pas de service.";
-
-namespace hardware {
-    constexpr uint8_t k_esp_led = 2;     // esp integrated blue led
-    constexpr uint8_t k_boot_button = 0; // esp boot button
-} // namespace hardware
-} // namespace
-
-class Application
-{
-    DisplayContr      m_display;        // LED matrix controller
-    web::AsyncServer  m_webServer;
-    stop_selection_s  m_selected_stop;
-    SemaphoreHandle_t m_stop_mutex;
-    bool              m_boot_button_pressed;
-public:
-                Application               ();
-
-public:
-    void        begin                     (void);
-    void        updateDisplay             (void);
-    void        updateArrivals            (void);
-
-private:
-    void        _initializeHarware        (void);
-    void        _initializeNetwork        (void);
-    void        _initializeWebServer      (void);
-
-    bool        _onStopSelection          (const char* routeName, const char* stopName);
-    void        _stopNextArrivalsService  (void);
-    std::string _formatNextArrivalToString(const stop_selection_s& selectedStop, const time_t remainingSecs[2]);
-};
+namespace Application {
+    void begin(void);
+} // Application
 
 #endif // SRC_APP_APPLICATION_H_

@@ -4,7 +4,7 @@
  * Created Date: 19-10-2026, 9:58:03 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 27th 2026, 10:12:54 pm
+ * Last Modified: Monday, November 2nd 2026, 2:41:56 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -21,7 +21,6 @@ stop_time_update_decoder(pb_istream_t* stream, const pb_field_iter_t*, void** ar
     //     LOG_PRINTLN("STOPTIMEUPDATE decoder has no context")
     //     return false;
     // }
-
     context::stop_time_update_s&               context     = *static_cast<context::stop_time_update_s*>(*arg);
     light_transit_rt_TripUpdate_StopTimeUpdate stop_update = light_transit_rt_TripUpdate_StopTimeUpdate_init_default;
 
@@ -37,32 +36,38 @@ stop_time_update_decoder(pb_istream_t* stream, const pb_field_iter_t*, void** ar
     {
         return true;
     }
-    if (utils::same_string(stop_update.stop_id, context.feed.stop_ids[k_dir_A]))
-    {
-        context.direction = k_dir_A;
-    }
-    else if (utils::same_string(stop_update.stop_id, context.feed.stop_ids[k_dir_B]))
-    {
-        context.direction = k_dir_B;
-    }
-    else
-    {
-        return true;
-    }
 
-    int64_t arrival = 0;
-    if (stop_update.has_arrival && stop_update.arrival.has_time)
-    {
-        arrival = stop_update.arrival.time - context.feed.now;
-    }
-    else if (stop_update.has_departure && stop_update.departure.has_time)
-    {
-        arrival = stop_update.departure.time - context.feed.now;
-    }
+    const auto dir = context.predecoded_entity.trip_update.trip.direction_id;
 
-    if (arrival > 0 && (context.remaining_seconds == 0 || arrival < context.remaining_seconds))
+    if (utils::same_string(stop_update.stop_id, context.feed.stop_ids[dir]))
     {
-        context.remaining_seconds = arrival;
+        context.direction = dir;
+        context.stop_sequence = (stop_update.has_stop_sequence) ? stop_update.stop_sequence : 1;
+        std::strcpy(context.trip_terminus, stop_update.stop_id); // case selected stop is as terminus
+
+        int64_t arrival = 0;
+        if (stop_update.has_arrival && stop_update.arrival.has_time)
+        {
+            arrival = stop_update.arrival.time - context.feed.now;
+        }
+        else if (stop_update.has_departure && stop_update.departure.has_time)
+        {
+            arrival = stop_update.departure.time - context.feed.now;
+        }
+
+        if (arrival > 0 && (context.remaining_seconds == 0 || arrival < context.remaining_seconds))
+        {
+            context.remaining_seconds = arrival;
+        }
+    }
+    else if (context.stop_sequence != 0) // if stop_sequence is not null the trip is a candidate and the stop end can be search
+    {
+        const auto sequence = (stop_update.has_stop_sequence) ? stop_update.stop_sequence : context.stop_sequence;
+        if (sequence > context.stop_sequence)
+        {
+            context.stop_sequence = sequence;
+            std::strcpy(context.trip_terminus, stop_update.stop_id);
+        }
     }
 
     return true;
@@ -71,15 +76,10 @@ stop_time_update_decoder(pb_istream_t* stream, const pb_field_iter_t*, void** ar
 static bool
 trip_update_decoder(pb_istream_t* stream, const pb_field_iter_t*, void** arg)
 {
-    if (arg == nullptr || *arg == nullptr)
-    {
-        LOG_PRINTLN("TripUpdate decoder has no context")
-        return false;
-    }
+    light_transit_rt_FeedEntity entity               = light_transit_rt_FeedEntity_init_default;
 
-    context::feed_s&            context             = *static_cast<context::feed_s*>(*arg);
-    context::stop_time_update_s stop_update_context = {context, int64_t(0), int8_t(0)};
-    light_transit_rt_FeedEntity entity              = light_transit_rt_FeedEntity_init_default;
+    context::feed_s&            context              = *static_cast<context::feed_s*>(*arg);
+    context::stop_time_update_s stop_update_context  = {context, int64_t(0), int8_t(0), uint32_t(0), {0}, entity};
 
     entity.trip_update.stop_time_update.funcs.decode = &stop_time_update_decoder;
     entity.trip_update.stop_time_update.arg          = &stop_update_context;
@@ -90,14 +90,16 @@ trip_update_decoder(pb_istream_t* stream, const pb_field_iter_t*, void** arg)
         return false;
     }
 
-    if (!entity.has_trip_update)
+    if (!entity.has_trip_update || stop_update_context.stop_sequence == 0 || !entity.trip_update.trip.has_route_id)
     {
         return true;
     }
 
     const auto& trip = entity.trip_update.trip;
     //* Route comparaison ensure that a earliest arrival found in stopTimeUpdate of a given stop is not another shared route.
-    if (!trip.has_route_id || !utils::same_string(trip.route_id, context.route))
+    if (
+        // !trip.has_route_id || 
+        !utils::same_string(trip.route_id, context.route))
     {
         return true;
     }
@@ -108,6 +110,7 @@ trip_update_decoder(pb_istream_t* stream, const pb_field_iter_t*, void** arg)
         && (context.next_arrivals[dir] == 0 || stop_update_context.remaining_seconds < context.next_arrivals[dir]))
     {
         context.next_arrivals[dir] = stop_update_context.remaining_seconds;
+        std::strcpy(context.terminus_stop_id[dir], stop_update_context.trip_terminus);
     }
 
     return true;
@@ -120,7 +123,7 @@ static bool nanopb_read_callback(pb_istream_t* stream, pb_byte_t* buffer, size_t
     return rt::read_response_bytes(buffer, count);
 }
 
-Gtfs::Decoder::Decoder(context::feed_s feed) : m_context{feed}{}
+Gtfs::Decoder::Decoder(context::feed_s feed) : m_context{feed} {}
 
 bool
 Gtfs::Decoder::decode(const size_t contentLength)
@@ -144,11 +147,35 @@ Gtfs::Decoder::decode(const size_t contentLength)
 std::optional<arrival_update_s>
 Gtfs::Decoder::getArrivalUpdate(void) const
 {
-
     if (m_context.next_arrivals[k_dir_A] + m_context.next_arrivals[k_dir_B])
     {
-        return std::optional<arrival_update_s>{{time_t(m_context.next_arrivals[k_dir_A]), time_t(m_context.next_arrivals[k_dir_B])}};
-    }
+        uint32_t terminus_ids[k_direction_count] = {};
 
+        for (size_t direction = 0; direction < k_direction_count; ++direction)
+        {
+            if (m_context.next_arrivals[direction] == 0)
+            {
+                continue;
+            }
+
+            const char* const stop_id     = m_context.terminus_stop_id[direction];
+            const char* const stop_id_end = stop_id + std::strlen(stop_id);
+            const auto        parsed      = std::from_chars(stop_id, stop_id_end, terminus_ids[direction]);
+
+            if (parsed.ec != std::errc{} || parsed.ptr != stop_id_end)
+            {
+                terminus_ids[direction] = std::stoul(m_context.stop_ids[direction]); // in case of error formating, consider selected stop as a route end.
+            }
+        }
+
+        
+        return std::optional<arrival_update_s>{{
+            {
+                time_t(m_context.next_arrivals[k_dir_A]),
+                time_t(m_context.next_arrivals[k_dir_B])
+            },
+            {terminus_ids[k_dir_A], terminus_ids[k_dir_B]}}
+        };
+    }
     return std::nullopt;
 }

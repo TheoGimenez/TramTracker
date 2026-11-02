@@ -4,7 +4,7 @@
  * File Created: Wednesday, 30th September 2026 9:23:44, pm
  * Author: Nathan Fain
  * -----
- * Last Modified: Tuesday, October 27th 2026, 10:18:30 pm
+ * Last Modified: Monday, November 2nd 2026, 2:50:37 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -61,6 +61,35 @@ transit::resolve_selected_stop(const char* routeShortName, const char* stopName)
     return std::nullopt;
 }
 
+const char*
+transit::get_stop_name(const uint32_t stop_id)
+{
+    size_t left = 0;
+    size_t right = gtfs::k_stop_count;
+
+    // use binary search
+    while (left < right)
+    {
+        size_t middle = left + (right - left) / 2;
+
+        if (gtfs::k_stops[middle].id == stop_id)
+        {
+            return gtfs::k_stops[middle].name();
+        }
+
+        if (gtfs::k_stops[middle].id < stop_id)
+        {
+            left = middle + 1;
+        }
+        else
+        {
+            right = middle;
+        }
+    }
+
+    return nullptr;
+}
+
 std::vector<std::string>
 transit::get_routes_list(void)
 {
@@ -84,7 +113,7 @@ transit::get_route_idx(const char* route)
     do
     {
         --idx;
-        if (std::strcmp(route, gtfs::k_routes[idx].name()))
+        if (utils::same_string(route, gtfs::k_routes[idx].name()))
         {
             break;
         }
@@ -103,7 +132,6 @@ std::set<std::string>
 transit::get_stops_list(const uint8_t route_idx)
 {
     std::set<std::string> stops;
-
 
     for (size_t i = 0; i < gtfs::k_stop_route_count; ++i)
     {

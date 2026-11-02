@@ -4,7 +4,7 @@
  * Created Date: 18-10-2026, 9:56:18 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Monday, October 19th 2026, 11:49:47 pm
+ * Last Modified: Monday, November 2nd 2026, 2:49:53 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -17,8 +17,8 @@
 //
 #include <esp_sntp.h> // use of time_t
 
-inline constexpr uint8_t k_dir_A = 0;
-inline constexpr uint8_t k_dir_B = 1;
+inline constexpr uint8_t k_dir_A           = 0;
+inline constexpr uint8_t k_dir_B           = 1;
 inline constexpr size_t  k_direction_count = 2;
 
 struct stop_selection_s
@@ -30,8 +30,8 @@ struct stop_selection_s
 
 struct arrival_update_s
 {
-    // RealtimeStatus status{RealtimeStatus::invalid_feed};
-    time_t seconds_until_arrivals[k_direction_count]{};
+    const time_t   seconds_until_arrivals[k_direction_count];
+    const uint32_t terminus_ids          [k_direction_count];
 };
 
 #endif // SRC_APP_TRANSIT_TYPE_H_

@@ -4,7 +4,7 @@
  * Created Date: 06-10-2026, 2:36:09 pm
  * Author: Theo Gimenez
  * -----
- * Last Modified: Tuesday, October 20th 2026, 1:48:23 am
+ * Last Modified: Monday, November 2nd 2026, 1:19:10 pm
  * Modified By: Theo Gimenez
  * -----
  */
@@ -15,9 +15,8 @@
 std::optional<arrival_update_s>
 rt::fetch_next_arrival(const char* route, const uint32_t stopIds[2], const time_t now)
 {
-    uint32_t        content_length = 0;
-    // context::feed_s context        = {stopIds, route, static_cast<int64_t>(now), {0}};
-    Gtfs::Decoder decoder = {Gtfs::context::feed_s{stopIds, route, static_cast<int64_t>(now), {0}}};
+    uint32_t      content_length = 0;
+    Gtfs::Decoder decoder        = {Gtfs::context::feed_s{stopIds, route, static_cast<int64_t>(now), {0}, {0}}};
 
     if (route == nullptr || (stopIds[0] == 0 && stopIds[1] == 0))
     {
@@ -51,7 +50,6 @@ rt::fetch_next_arrival(const char* route, const uint32_t stopIds[2], const time_
         LOG_PRINTLN("No content-length")
     }
 
-    //
     rt::close_gtfs_connection();
 
     return decoder.getArrivalUpdate();
